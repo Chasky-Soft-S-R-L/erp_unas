@@ -135,6 +135,24 @@
   .seg-tabs{display:flex;gap:4px;background:var(--bg);padding:4px;border-radius:10px;width:fit-content;margin-bottom:14px;flex-wrap:wrap}
   .seg-tabs button{padding:6px 14px;border-radius:7px;font-size:12px;font-weight:600;color:var(--muted)}
   .seg-tabs button.on{background:#fff;color:var(--primary-dark);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+  .subpanel{display:none}.subpanel.show{display:block;animation:fade .2s ease}
+
+  .hero{background:linear-gradient(120deg,var(--sidebar),var(--sidebar-2) 60%,#124b42);color:#fff;border-radius:16px;padding:22px 26px;margin-bottom:16px;position:relative;overflow:hidden}
+  .hero::after{content:"";position:absolute;right:-40px;top:-40px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(26,187,156,.35),transparent 70%)}
+  .hero .eyebrow{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--primary-light);font-weight:700}
+  .hero h2{font-size:23px;font-weight:800;margin:6px 0 4px;letter-spacing:-.3px;position:relative;z-index:1}
+  .hero p{color:var(--sidebar-ink);font-size:12.5px;max-width:640px;position:relative;z-index:1}
+  .hero .stats{display:flex;gap:26px;margin-top:16px;flex-wrap:wrap;position:relative;z-index:1}
+  .hero .stats div b{display:block;font-size:20px;font-weight:800}
+  .hero .stats div span{font-size:10.5px;color:var(--sidebar-ink);text-transform:uppercase;letter-spacing:.5px}
+
+  .ef-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line);font-size:12px}
+  .ef-row.tot{font-weight:800;border-bottom:none;border-top:2px solid var(--line);color:var(--primary-dark)}
+  .ef-row.sub{padding-left:14px;color:var(--muted)}
+  .boleta{border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:11.5px}
+  .boleta .bh{background:var(--bg);padding:12px 14px;border-bottom:1px solid var(--line)}
+  .kfig{display:flex;align-items:baseline;gap:6px}.kfig b{font-size:15px}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;background:var(--bg);border:1px solid var(--line);color:var(--muted)}
 
   .prod-card{display:flex;gap:12px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:12px;background:#fff}
   .prod-ic{width:44px;height:44px;border-radius:11px;display:grid;place-items:center;font-size:22px;flex-shrink:0}
@@ -191,6 +209,18 @@
 
     <!-- ============ DASHBOARD ============ -->
     <section class="page show" id="page-dash">
+      <div class="hero">
+        <div class="eyebrow">Sistema Integrado de Gestión Administrativa Universitaria</div>
+        <h2>SIGA&#8209;U · Plataforma de gestión institucional</h2>
+        <p>Modernización del sistema administrativo-financiero de la universidad: ejecución presupuestal SIAF, abastecimiento, tesorería, contabilidad, planillas y el Centro de Producción de bienes y servicios, integrados en una sola plataforma.</p>
+        <div class="stats">
+          <div><b class="num">8</b><span>Módulos integrados</span></div>
+          <div><b class="num">166</b><span>Tablas de datos</span></div>
+          <div><b class="num">1,197</b><span>Trabajadores</span></div>
+          <div><b class="num">S/ 118.4 M</b><span>Presupuesto 2025</span></div>
+          <div><b class="num">S/ 3.42 M</b><span>Recursos propios (RDR)</span></div>
+        </div>
+      </div>
       <div class="page-head">
         <div><h1>Tablero de control</h1><p>Ejecución presupuestal consolidada · Todas las fuentes de financiamiento</p></div>
         <div style="display:flex;gap:8px"><button class="btn ghost"><i class="fa-solid fa-download"></i> Exportar</button><button class="btn"><i class="fa-solid fa-plus"></i> Nueva certificación</button></div>
@@ -272,9 +302,17 @@
     <!-- ============ PRESUPUESTO ============ -->
     <section class="page" id="page-ppto">
       <div class="page-head">
-        <div><h1>Presupuesto · Movimiento de Ítems Certificados</h1><p>Registro de certificación y ejecución del crédito presupuestario</p></div>
+        <div><h1>Presupuesto</h1><p>Ejecución del gasto público · SIAF · Certificación y control del crédito presupuestario</p></div>
         <div style="display:flex;gap:8px"><button class="btn ghost"><i class="fa-solid fa-magnifying-glass"></i> Buscar RCCA</button><button class="btn sec"><i class="fa-solid fa-right-left"></i> Registro SIAF</button><button class="btn"><i class="fa-solid fa-plus"></i> Certificación</button></div>
       </div>
+      <div class="grid cols-4" style="margin-bottom:14px">
+        <div class="card kpi"><div class="lab">PIA inicial</div><div class="val num">S/ 102.6 M</div><div class="sub">Presup. Inst. de Apertura</div></div>
+        <div class="card kpi"><div class="chip up">+15.4%</div><div class="lab">PIM modificado</div><div class="val num">S/ 118.4 M</div><div class="sub">tras notas modificatorias</div></div>
+        <div class="card kpi"><div class="lab">Certificado</div><div class="val num">S/ 116.9 M</div><div class="sub">98.7% del PIM</div></div>
+        <div class="card kpi"><div class="chip up">91.2%</div><div class="lab">Devengado</div><div class="val num">S/ 108.0 M</div><div class="sub">avance de ejecución</div></div>
+      </div>
+      <div class="seg-tabs" data-group="ppto"><button class="on" data-tab="cert">Certificación de ítems</button><button data-tab="marco">Marco presupuestal</button><button data-tab="notas">Notas modificatorias</button></div>
+      <div class="subpanel show" data-group="ppto" data-panel="cert">
       <div class="card" style="margin-bottom:14px">
         <h3><span class="dot"></span>Cabecera del certificado</h3>
         <div class="formbar">
@@ -317,16 +355,57 @@
               <div style="display:flex;justify-content:space-between"><span class="mini">Registro SIAF</span><span class="code">2025-0004512</span></div>
               <div style="display:flex;justify-content:space-between"><span class="mini">Usuario</span><span>CQL</span></div>
             </div>
-            <div class="note teal" style="margin:12px 0 0;font-size:11px"><span>ƒ</span><div>Regla del sistema (<code>actsal.prg</code>):<br><b>saldo = (inicial + créditos − anulaciones) − ejecutado</b></div></div>
+            <div class="note teal" style="margin:12px 0 0;font-size:11px"><span><i class="fa-solid fa-calculator"></i></span><div>Regla del sistema (<code>actsal.prg</code>):<br><b>saldo = (inicial + créditos − anulaciones) − ejecutado</b></div></div>
           </div>
+        </div>
+      </div>
+      </div>
+
+      <div class="subpanel" data-group="ppto" data-panel="marco">
+        <div class="card">
+          <h3><span class="dot"></span>Marco presupuestal por genérica de gasto <span class="grow">PIA → PIM → Ejecución</span></h3>
+          <table>
+            <thead><tr><th>Genérica</th><th class="r">PIA</th><th class="r">Modif.</th><th class="r">PIM</th><th class="r">Certificado</th><th class="r">Devengado</th><th class="r">Saldo</th><th class="r">Avance</th></tr></thead>
+            <tbody>
+              <tr><td>2.1 Personal y O.S.</td><td class="r num">48,200,000</td><td class="r num">3,900,000</td><td class="r num">52,100,000</td><td class="r num">52,100,000</td><td class="r num">51,480,000</td><td class="r num saldo-pos">620,000</td><td class="r"><span class="tag t-green">98.8%</span></td></tr>
+              <tr><td>2.2 Bienes y servicios</td><td class="r num">28,400,000</td><td class="r num">3,240,000</td><td class="r num">31,640,000</td><td class="r num">31,100,000</td><td class="r num">28,700,000</td><td class="r num saldo-pos">2,940,000</td><td class="r"><span class="tag t-amber">90.7%</span></td></tr>
+              <tr><td>2.3 Adquisición de activos</td><td class="r num">12,800,000</td><td class="r num">1,400,000</td><td class="r num">14,200,000</td><td class="r num">13,900,000</td><td class="r num">11,600,000</td><td class="r num saldo-pos">2,600,000</td><td class="r"><span class="tag t-amber">81.7%</span></td></tr>
+              <tr><td>2.5 Otros gastos</td><td class="r num">6,600,000</td><td class="r num">300,000</td><td class="r num">6,900,000</td><td class="r num">6,900,000</td><td class="r num">6,300,000</td><td class="r num saldo-pos">600,000</td><td class="r"><span class="tag t-green">91.3%</span></td></tr>
+              <tr><td>2.6 Inversiones</td><td class="r num">6,600,000</td><td class="r num">6,960,000</td><td class="r num">13,560,000</td><td class="r num">12,900,000</td><td class="r num">9,880,000</td><td class="r num saldo-pos">3,680,000</td><td class="r"><span class="tag t-red">72.9%</span></td></tr>
+            </tbody>
+            <tfoot><tr><td class="r" style="font-weight:700">TOTAL</td><td class="r num" style="font-weight:700">102,600,000</td><td class="r num" style="font-weight:700">15,800,000</td><td class="r num" style="font-weight:700">118,400,000</td><td class="r num" style="font-weight:700">116,900,000</td><td class="r num" style="font-weight:700;color:var(--primary-dark)">108,000,000</td><td class="r num" style="font-weight:700">10,400,000</td><td class="r" style="font-weight:700">91.2%</td></tr></tfoot>
+          </table>
+        </div>
+      </div>
+
+      <div class="subpanel" data-group="ppto" data-panel="notas">
+        <div class="card">
+          <h3><span class="dot"></span>Notas modificatorias presupuestarias <span class="grow">Ejercicio 2025</span></h3>
+          <table>
+            <thead><tr><th>N° Nota</th><th>Fecha</th><th>Tipo</th><th>Concepto</th><th class="r">Habilita</th><th class="r">Anula</th><th>Estado</th></tr></thead>
+            <tbody>
+              <tr><td class="code">NM-0042</td><td class="num">12/11/2025</td><td><span class="tag t-blue">Crédito suplem.</span></td><td>Mayores RDR · Centro de Producción</td><td class="r num saldo-pos">+1,200,000</td><td class="r num">—</td><td><span class="tag t-green">Aprobada</span></td></tr>
+              <tr><td class="code">NM-0041</td><td class="num">28/10/2025</td><td><span class="tag t-amber">Habilitación</span></td><td>Transferencia entre partidas · inversiones</td><td class="r num saldo-pos">+960,000</td><td class="r num saldo-neg">-960,000</td><td><span class="tag t-green">Aprobada</span></td></tr>
+              <tr><td class="code">NM-0040</td><td class="num">15/10/2025</td><td><span class="tag t-blue">Crédito suplem.</span></td><td>Transferencia de partidas MEF</td><td class="r num saldo-pos">+3,900,000</td><td class="r num">—</td><td><span class="tag t-green">Aprobada</span></td></tr>
+              <tr><td class="code">NM-0039</td><td class="num">02/10/2025</td><td><span class="tag t-amber">Anulación</span></td><td>Saldo no ejecutado · bienes y servicios</td><td class="r num">—</td><td class="r num saldo-neg">-420,000</td><td><span class="tag t-gray">Registrada</span></td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </section>
 
     <!-- ============ ABASTECIMIENTO ============ -->
     <section class="page" id="page-alma">
-      <div class="page-head"><div><h1>Abastecimiento · Órdenes de compra y servicio</h1><p>Adquisiciones, kárdex y control de stock de almacén</p></div><button class="btn"><i class="fa-solid fa-plus"></i> Nueva orden</button></div>
-      <div class="seg-tabs"><button class="on">Órdenes</button><button>Kárdex</button><button>Stock</button></div>
+      <div class="page-head"><div><h1>Abastecimiento</h1><p>Logística · Órdenes de compra y servicio, kárdex, control de stock y Plan Anual de Contrataciones</p></div><button class="btn"><i class="fa-solid fa-plus"></i> Nueva orden</button></div>
+      <div class="grid cols-4" style="margin-bottom:14px">
+        <div class="card kpi"><div class="lab">Órdenes emitidas</div><div class="val num">2,015</div><div class="sub">O/C y O/S · 2025</div></div>
+        <div class="card kpi"><div class="lab">Valor adquisiciones</div><div class="val num">S/ 31.6 M</div><div class="sub">bienes y servicios</div></div>
+        <div class="card kpi"><div class="chip warn">18</div><div class="lab">Órdenes pendientes</div><div class="val num">18</div><div class="sub">por atender</div></div>
+        <div class="card kpi"><div class="lab">Ítems en catálogo</div><div class="val num">18,272</div><div class="sub">SIGA</div></div>
+      </div>
+      <div class="seg-tabs" data-group="alma"><button class="on" data-tab="ord">Órdenes</button><button data-tab="kar">Kárdex</button><button data-tab="stk">Stock</button><button data-tab="pac">Plan de Contrataciones</button></div>
+
+      <div class="subpanel show" data-group="alma" data-panel="ord">
       <div class="card">
         <table>
           <thead><tr><th>N° O/C</th><th>Fecha</th><th>Proveedor</th><th>Referencia</th><th>Partida</th><th class="r">Importe</th><th>Estado</th></tr></thead>
@@ -335,8 +414,54 @@
             <tr><td class="code">O/S 0451</td><td class="num">17/12/2025</td><td>Servicios Informáticos Selva EIRL</td><td>Operación de red de datos</td><td class="code">2.2.2 3.1 1</td><td class="r num">S/ 18,000.00</td><td><span class="tag t-blue">En proceso</span></td></tr>
             <tr><td class="code">O/C 0893</td><td class="num">16/12/2025</td><td>Comercial Ferretera Tingo María SRL</td><td>Repuestos maquinaria agrícola</td><td class="code">2.3.1 5.1 2</td><td class="r num">S/ 4,320.00</td><td><span class="tag t-green">Atendida</span></td></tr>
             <tr><td class="code">O/C 0892</td><td class="num">15/12/2025</td><td>Importaciones Tecnológicas del Perú SAC</td><td>Equipos de cómputo</td><td class="code">2.6.3 2.2 1</td><td class="r num">S/ 23,100.00</td><td><span class="tag t-amber">Pendiente</span></td></tr>
+            <tr><td class="code">O/S 0450</td><td class="num">13/12/2025</td><td>Consultora Ambiental Amazonía EIRL</td><td>Análisis de laboratorio</td><td class="code">2.2.2 7.9 9</td><td class="r num">S/ 9,600.00</td><td><span class="tag t-green">Atendida</span></td></tr>
           </tbody>
         </table>
+      </div>
+      </div>
+
+      <div class="subpanel" data-group="alma" data-panel="kar">
+      <div class="card">
+        <h3><span class="dot"></span>Kárdex valorizado <span class="grow">Alimentos y bebidas · método PEPS</span></h3>
+        <table>
+          <thead><tr><th>Fecha</th><th>Documento</th><th>Movimiento</th><th class="r">Entrada</th><th class="r">Salida</th><th class="r">Saldo</th><th class="r">Valor S/</th></tr></thead>
+          <tbody>
+            <tr><td class="num">02/12</td><td class="code">NEA-0231</td><td><span class="tag t-green">Ingreso</span> compra</td><td class="r num">500</td><td class="r num">—</td><td class="r num">500</td><td class="r num">6,250.00</td></tr>
+            <tr><td class="num">08/12</td><td class="code">PS-1120</td><td><span class="tag t-blue">Salida</span> a comedor</td><td class="r num">—</td><td class="r num">180</td><td class="r num">320</td><td class="r num">4,000.00</td></tr>
+            <tr><td class="num">15/12</td><td class="code">PS-1128</td><td><span class="tag t-blue">Salida</span> a laboratorio</td><td class="r num">—</td><td class="r num">90</td><td class="r num">230</td><td class="r num">2,875.00</td></tr>
+            <tr><td class="num">20/12</td><td class="code">NEA-0240</td><td><span class="tag t-green">Ingreso</span> compra</td><td class="r num">300</td><td class="r num">—</td><td class="r num">530</td><td class="r num">6,625.00</td></tr>
+          </tbody>
+        </table>
+      </div>
+      </div>
+
+      <div class="subpanel" data-group="alma" data-panel="stk">
+      <div class="card">
+        <h3><span class="dot"></span>Control de stock de almacén</h3>
+        <table>
+          <thead><tr><th>Código</th><th>Bien</th><th class="r">Stock</th><th class="r">Mínimo</th><th class="r">Máximo</th><th class="r">Valor</th><th>Estado</th></tr></thead>
+          <tbody>
+            <tr><td class="code">2.2.1 1.1 1</td><td>Papel bond A4 (millar)</td><td class="r num">420</td><td class="r num">100</td><td class="r num">600</td><td class="r num">6,300.00</td><td><span class="tag t-green">Normal</span></td></tr>
+            <tr><td class="code">2.3.1 5.1 2</td><td>Tóner de impresora</td><td class="r num">18</td><td class="r num">20</td><td class="r num">80</td><td class="r num">5,400.00</td><td><span class="tag t-amber">Reponer</span></td></tr>
+            <tr><td class="code">2.3.1 3.1 1</td><td>Combustible diésel (gal)</td><td class="r num">240</td><td class="r num">200</td><td class="r num">1,000</td><td class="r num">4,080.00</td><td><span class="tag t-green">Normal</span></td></tr>
+            <tr><td class="code">2.3.1 8.1 1</td><td>Reactivos de laboratorio</td><td class="r num">6</td><td class="r num">15</td><td class="r num">60</td><td class="r num">3,600.00</td><td><span class="tag t-red">Crítico</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      </div>
+
+      <div class="subpanel" data-group="alma" data-panel="pac">
+      <div class="card">
+        <h3><span class="dot"></span>Plan Anual de Contrataciones (PAC) 2025</h3>
+        <table>
+          <thead><tr><th>N° Proc.</th><th>Objeto</th><th>Tipo</th><th class="r">Valor estimado</th><th>Trimestre</th><th>Estado</th></tr></thead>
+          <tbody>
+            <tr><td class="code">PROC-041</td><td>Adquisición de equipos de laboratorio</td><td>Licitación Pública</td><td class="r num">S/ 480,000</td><td>III</td><td><span class="tag t-green">Adjudicado</span></td></tr>
+            <tr><td class="code">PROC-052</td><td>Servicio de mantenimiento de infraestructura</td><td>Concurso Público</td><td class="r num">S/ 320,000</td><td>IV</td><td><span class="tag t-blue">En proceso</span></td></tr>
+            <tr><td class="code">PROC-058</td><td>Suministro de insumos agropecuarios</td><td>Adjud. Simplificada</td><td class="r num">S/ 96,000</td><td>IV</td><td><span class="tag t-amber">Convocado</span></td></tr>
+          </tbody>
+        </table>
+      </div>
       </div>
     </section>
 
@@ -543,7 +668,16 @@
 
     <!-- ============ TESORERÍA ============ -->
     <section class="page" id="page-teso">
-      <div class="page-head"><div><h1>Tesorería · Comprobantes de pago</h1><p>Fase girado y pagado · 1,078 comprobantes emitidos</p></div><button class="btn"><i class="fa-solid fa-plus"></i> Nuevo comprobante</button></div>
+      <div class="page-head"><div><h1>Tesorería</h1><p>Fase girado y pagado · comprobantes de pago, cuentas bancarias y conciliación</p></div><button class="btn"><i class="fa-solid fa-plus"></i> Nuevo comprobante</button></div>
+      <div class="grid cols-4" style="margin-bottom:14px">
+        <div class="card kpi"><div class="lab">Girado 2025</div><div class="val num">S/ 104.7 M</div><div class="sub">88.4% del PIM</div></div>
+        <div class="card kpi"><div class="lab">Pagado 2025</div><div class="val num">S/ 103.9 M</div><div class="sub">87.8% del PIM</div></div>
+        <div class="card kpi"><div class="lab">Saldo en bancos</div><div class="val num saldo-pos">S/ 908,560</div><div class="sub">disponible</div></div>
+        <div class="card kpi"><div class="chip warn">12</div><div class="lab">Cheques en cartera</div><div class="val num">12</div><div class="sub">por entregar</div></div>
+      </div>
+      <div class="seg-tabs" data-group="teso"><button class="on" data-tab="cp">Comprobantes de pago</button><button data-tab="ban">Cuentas bancarias</button><button data-tab="con">Conciliación</button></div>
+
+      <div class="subpanel show" data-group="teso" data-panel="cp">
       <div class="card">
         <table>
           <thead><tr><th>N° C/P</th><th>Fecha</th><th>Proveedor / Beneficiario</th><th>Banco</th><th>Cheque / CCI</th><th class="r">Total</th><th>Estado</th></tr></thead>
@@ -555,28 +689,122 @@
           </tbody>
         </table>
       </div>
+      </div>
+
+      <div class="subpanel" data-group="teso" data-panel="ban">
+      <div class="card">
+        <h3><span class="dot"></span>Cuentas bancarias de la entidad</h3>
+        <table>
+          <thead><tr><th>Banco</th><th>Cuenta</th><th>Fuente</th><th>Tipo</th><th class="r">Saldo contable</th><th class="r">Saldo bancario</th></tr></thead>
+          <tbody>
+            <tr><td>Banco de la Nación</td><td class="code">00-068-••4521</td><td>00 · R. Ordinarios</td><td>Cta. Cte.</td><td class="r num">412,300.00</td><td class="r num">412,300.00</td></tr>
+            <tr><td>Banco de la Nación</td><td class="code">00-068-••7830</td><td>09 · RDR</td><td>Cta. Cte.</td><td class="r num">368,900.00</td><td class="r num">371,420.00</td></tr>
+            <tr><td>BCP</td><td class="code">193-••••-8890</td><td>13 · Donaciones</td><td>Cta. Cte.</td><td class="r num">98,760.00</td><td class="r num">98,760.00</td></tr>
+            <tr><td>Interbank</td><td class="code">200-••••-1120</td><td>09 · RDR</td><td>Ahorros</td><td class="r num">28,600.00</td><td class="r num">28,600.00</td></tr>
+          </tbody>
+          <tfoot><tr><td colspan="4" class="r" style="font-weight:700">Total disponible</td><td class="r num" style="font-weight:800;color:var(--primary-dark)">908,560.00</td><td class="r num" style="font-weight:700">911,080.00</td></tr></tfoot>
+        </table>
+      </div>
+      </div>
+
+      <div class="subpanel" data-group="teso" data-panel="con">
+      <div class="split">
+        <div class="card">
+          <h3><span class="dot"></span>Conciliación bancaria · Cta. RDR ••7830</h3>
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <div class="ef-row"><span>Saldo según libros</span><b class="num">368,900.00</b></div>
+            <div class="ef-row sub"><span>(+) Depósitos en tránsito</span><span class="num">2,520.00</span></div>
+            <div class="ef-row sub"><span>(−) Cheques girados no cobrados</span><span class="num">0.00</span></div>
+            <div class="ef-row tot"><span>Saldo conciliado</span><span class="num">371,420.00</span></div>
+            <div class="ef-row"><span>Saldo según extracto bancario</span><b class="num">371,420.00</b></div>
+          </div>
+          <div class="note teal" style="margin-top:12px;font-size:11px"><span><i class="fa-solid fa-circle-check"></i></span><div>Conciliación cuadrada · diferencia S/ 0.00</div></div>
+        </div>
+        <div class="card">
+          <h3><span class="dot"></span>Cheques en cartera</h3>
+          <table>
+            <thead><tr><th>Cheque</th><th>Beneficiario</th><th class="r">Monto</th></tr></thead>
+            <tbody>
+              <tr><td class="code">•••8901</td><td>Proveedor A</td><td class="r num">4,320.00</td></tr>
+              <tr><td class="code">•••8902</td><td>Proveedor B</td><td class="r num">1,890.00</td></tr>
+              <tr><td class="code">•••8903</td><td>Viáticos comisión</td><td class="r num">2,100.00</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      </div>
     </section>
 
     <!-- ============ CONTABILIDAD ============ -->
     <section class="page" id="page-inta">
-      <div class="page-head"><div><h1>Contabilidad</h1><p>Asientos, plan contable y estados financieros</p></div><button class="btn"><i class="fa-solid fa-plus"></i> Nuevo asiento</button></div>
-      <div class="grid cols-3" style="margin-bottom:14px">
-        <div class="card kpi"><div class="lab"><i class="fa-solid fa-book"></i> Asientos del mes</div><div class="val num">1,284</div></div>
-        <div class="card kpi"><div class="lab"><i class="fa-solid fa-wallet"></i> Plan contable</div><div class="val num">4,861</div><div class="sub">cuentas (placta)</div></div>
-        <div class="card kpi"><div class="lab"><i class="fa-solid fa-circle-check"></i> Balance</div><div class="val num" style="color:var(--ok)">Cuadrado</div></div>
+      <div class="page-head"><div><h1>Contabilidad</h1><p>Registro contable gubernamental · asientos, plan contable y estados financieros</p></div><button class="btn"><i class="fa-solid fa-plus"></i> Nuevo asiento</button></div>
+      <div class="grid cols-4" style="margin-bottom:14px">
+        <div class="card kpi"><div class="lab">Asientos del mes</div><div class="val num">1,284</div><div class="sub">diciembre 2025</div></div>
+        <div class="card kpi"><div class="lab">Plan contable</div><div class="val num">4,861</div><div class="sub">cuentas (placta)</div></div>
+        <div class="card kpi"><div class="lab">Balance</div><div class="val num" style="color:var(--ok)">Cuadrado</div><div class="sub">debe = haber</div></div>
+        <div class="card kpi"><div class="lab">Cierre contable</div><div class="val num">Nov 2025</div><div class="sub">último mes cerrado</div></div>
       </div>
+      <div class="seg-tabs" data-group="inta"><button class="on" data-tab="bal">Balance de comprobación</button><button data-tab="asi">Asientos</button><button data-tab="ef">Estados financieros</button></div>
+
+      <div class="subpanel show" data-group="inta" data-panel="bal">
       <div class="card">
-        <h3><span class="dot"></span>Balance de comprobación (extracto)</h3>
+        <h3><span class="dot"></span>Balance de comprobación <span class="grow">al 31/12/2025</span></h3>
         <table>
           <thead><tr><th>Cuenta</th><th>Denominación</th><th class="r">Debe</th><th class="r">Haber</th><th class="r">Saldo</th></tr></thead>
           <tbody>
             <tr><td class="code">1101</td><td>Caja y Bancos</td><td class="r num">4,820,100</td><td class="r num">3,911,540</td><td class="r num saldo-pos">908,560</td></tr>
+            <tr><td class="code">1201</td><td>Cuentas por Cobrar</td><td class="r num">1,340,200</td><td class="r num">980,400</td><td class="r num saldo-pos">359,800</td></tr>
             <tr><td class="code">2103</td><td>Cuentas por Pagar Comerciales</td><td class="r num">1,204,300</td><td class="r num">1,588,900</td><td class="r num saldo-neg">-384,600</td></tr>
             <tr><td class="code">5301</td><td>Bienes y Servicios</td><td class="r num">31,640,200</td><td class="r num">0</td><td class="r num saldo-pos">31,640,200</td></tr>
             <tr><td class="code">6301</td><td>Gastos de Personal</td><td class="r num">52,110,800</td><td class="r num">0</td><td class="r num saldo-pos">52,110,800</td></tr>
           </tbody>
         </table>
-        <p class="mini" style="margin-top:10px">Lógica de mayorización (<code>int320.prg</code>): si <code>debe − haber &lt; 0</code> → saldo acreedor; si <code>≥ 0</code> → saldo deudor.</p>
+        <p class="mini" style="margin-top:10px">Mayorización (<code>int320.prg</code>): si <code>debe − haber &lt; 0</code> → saldo acreedor; si <code>≥ 0</code> → saldo deudor.</p>
+      </div>
+      </div>
+
+      <div class="subpanel" data-group="inta" data-panel="asi">
+      <div class="card">
+        <h3><span class="dot"></span>Libro diario <span class="grow">últimos asientos</span></h3>
+        <table>
+          <thead><tr><th>Asiento</th><th>Fecha</th><th>Glosa</th><th>Cuenta</th><th class="r">Debe</th><th class="r">Haber</th></tr></thead>
+          <tbody>
+            <tr><td class="code">A-4821</td><td class="num">19/12</td><td>Devengado O/C 0894</td><td class="code">5301</td><td class="r num">12,480.00</td><td class="r num">—</td></tr>
+            <tr><td></td><td></td><td></td><td class="code">2103</td><td class="r num">—</td><td class="r num">12,480.00</td></tr>
+            <tr><td class="code">A-4822</td><td class="num">19/12</td><td>Ingreso RDR · venta café</td><td class="code">1101</td><td class="r num">4,956.00</td><td class="r num">—</td></tr>
+            <tr><td></td><td></td><td></td><td class="code">4301</td><td class="r num">—</td><td class="r num">4,956.00</td></tr>
+          </tbody>
+        </table>
+      </div>
+      </div>
+
+      <div class="subpanel" data-group="inta" data-panel="ef">
+      <div class="split">
+        <div class="card">
+          <h3><span class="dot"></span>Estado de Situación Financiera <span class="grow">EF-1</span></h3>
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <div class="ef-row" style="font-weight:700;color:var(--secondary-dark)"><span>ACTIVO</span><span></span></div>
+            <div class="ef-row sub"><span>Activo corriente</span><span class="num">1,268,360</span></div>
+            <div class="ef-row sub"><span>Activo no corriente</span><span class="num">48,920,000</span></div>
+            <div class="ef-row tot"><span>Total activo</span><span class="num">50,188,360</span></div>
+            <div class="ef-row" style="font-weight:700;color:var(--secondary-dark);margin-top:8px"><span>PASIVO Y PATRIMONIO</span><span></span></div>
+            <div class="ef-row sub"><span>Pasivo corriente</span><span class="num">384,600</span></div>
+            <div class="ef-row sub"><span>Patrimonio</span><span class="num">49,803,760</span></div>
+            <div class="ef-row tot"><span>Total pasivo y patrimonio</span><span class="num">50,188,360</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <h3><span class="dot"></span>Estado de Gestión <span class="grow">EF-2</span></h3>
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <div class="ef-row"><span>Ingresos (transferencias + RDR)</span><span class="num">121,820,000</span></div>
+            <div class="ef-row sub"><span>(−) Gastos de personal</span><span class="num">52,110,800</span></div>
+            <div class="ef-row sub"><span>(−) Bienes y servicios</span><span class="num">31,640,200</span></div>
+            <div class="ef-row sub"><span>(−) Otros gastos</span><span class="num">6,300,000</span></div>
+            <div class="ef-row tot"><span>Resultado del ejercicio</span><span class="num saldo-pos">31,769,000</span></div>
+          </div>
+          <p class="mini" style="margin-top:10px">Estados financieros gubernamentales conforme a la Cuenta General de la República.</p>
+        </div>
+      </div>
       </div>
     </section>
 
@@ -584,11 +812,14 @@
     <section class="page" id="page-planilla">
       <div class="page-head"><div><h1>Planillas · Personal</h1><p>1,197 trabajadores · Remuneraciones por régimen laboral y concepto</p></div><div style="display:flex;gap:8px"><button class="btn ghost"><i class="fa-solid fa-print"></i> Boletas</button><button class="btn"><i class="fa-solid fa-file-circle-check"></i> Generar planilla</button></div></div>
       <div class="grid cols-4" style="margin-bottom:14px">
-        <div class="card kpi"><div class="lab"><i class="fa-solid fa-users"></i> Total trabajadores</div><div class="val num">1,197</div><div class="sub">Activos en planilla</div></div>
-        <div class="card kpi"><div class="lab"><i class="fa-solid fa-file-circle-check"></i> Planilla del mes</div><div class="val num">S/ 4.38 M</div><div class="sub">Neto a pagar · Dic.</div></div>
-        <div class="card kpi"><div class="lab"><i class="fa-solid fa-wallet"></i> Aportes ONP/AFP</div><div class="val num">S/ 612 K</div><div class="sub">Descuentos previsionales</div></div>
-        <div class="card kpi"><div class="lab"><i class="fa-solid fa-money-check-dollar"></i> Regímenes</div><div class="val num">9</div><div class="sub">Tipos de planilla</div></div>
+        <div class="card kpi"><div class="lab">Total trabajadores</div><div class="val num">1,197</div><div class="sub">activos en planilla</div></div>
+        <div class="card kpi"><div class="lab">Planilla del mes</div><div class="val num">S/ 4.38 M</div><div class="sub">neto a pagar · Dic.</div></div>
+        <div class="card kpi"><div class="lab">Aportes ONP/AFP</div><div class="val num">S/ 612 K</div><div class="sub">descuentos previsionales</div></div>
+        <div class="card kpi"><div class="lab">Regímenes</div><div class="val num">9</div><div class="sub">tipos de planilla</div></div>
       </div>
+      <div class="seg-tabs" data-group="pla"><button class="on" data-tab="res">Resumen</button><button data-tab="tra">Trabajadores</button><button data-tab="men">Planilla mensual</button><button data-tab="bol">Boleta</button></div>
+
+      <div class="subpanel show" data-group="pla" data-panel="res">
       <div class="split">
         <div class="card">
           <h3><span class="dot"></span>Distribución por régimen laboral</h3>
@@ -613,12 +844,120 @@
           </div>
         </div>
       </div>
+      </div>
+
+      <div class="subpanel" data-group="pla" data-panel="tra">
+      <div class="card">
+        <h3><span class="dot"></span>Trabajadores <span class="grow">datos personales protegidos</span></h3>
+        <table>
+          <thead><tr><th>Código</th><th>Trabajador</th><th>Régimen</th><th>Cargo</th><th>Condición</th><th class="r">Neto</th></tr></thead>
+          <tbody>
+            <tr><td class="code">••301</td><td>Docente ••••</td><td>01 · Nombrado</td><td>Docente Principal T.C.</td><td><span class="tag t-green">Activo</span></td><td class="r num">6,840.00</td></tr>
+            <tr><td class="code">••118</td><td>Administrativo ••••</td><td>02 · D.L. 276</td><td>Especialista Administrativo</td><td><span class="tag t-green">Activo</span></td><td class="r num">3,210.00</td></tr>
+            <tr><td class="code">••554</td><td>Contratado ••••</td><td>06 · CAS</td><td>Asistente de laboratorio</td><td><span class="tag t-green">Activo</span></td><td class="r num">2,480.00</td></tr>
+            <tr><td class="code">••072</td><td>Pensionista ••••</td><td>10 · Pensión</td><td>Cesante</td><td><span class="tag t-blue">Pensionista</span></td><td class="r num">1,930.00</td></tr>
+          </tbody>
+        </table>
+      </div>
+      </div>
+
+      <div class="subpanel" data-group="pla" data-panel="men">
+      <div class="card">
+        <h3><span class="dot"></span>Planilla mensual consolidada <span class="grow">Diciembre 2025</span></h3>
+        <table>
+          <thead><tr><th>Régimen</th><th class="r">Trab.</th><th class="r">Ingresos</th><th class="r">Descuentos</th><th class="r">Aportes</th><th class="r">Neto a pagar</th></tr></thead>
+          <tbody>
+            <tr><td>01 · Docentes nombrados</td><td class="r num">295</td><td class="r num">1,820,400</td><td class="r num">268,900</td><td class="r num">201,300</td><td class="r num">1,551,500</td></tr>
+            <tr><td>02 · D.L. 276</td><td class="r num">362</td><td class="r num">1,340,600</td><td class="r num">198,400</td><td class="r num">148,200</td><td class="r num">1,142,200</td></tr>
+            <tr><td>03 · Contratados</td><td class="r num">217</td><td class="r num">742,300</td><td class="r num">98,100</td><td class="r num">82,100</td><td class="r num">644,200</td></tr>
+            <tr><td>06 · CAS</td><td class="r num">145</td><td class="r num">486,200</td><td class="r num">58,300</td><td class="r num">43,700</td><td class="r num">427,900</td></tr>
+            <tr><td>10 · Pensionistas</td><td class="r num">115</td><td class="r num">248,600</td><td class="r num">32,400</td><td class="r num">—</td><td class="r num">216,200</td></tr>
+          </tbody>
+          <tfoot><tr><td class="r" style="font-weight:700">TOTAL</td><td class="r num" style="font-weight:700">1,197</td><td class="r num" style="font-weight:700">4,638,100</td><td class="r num" style="font-weight:700">656,100</td><td class="r num" style="font-weight:700">475,300</td><td class="r num" style="font-weight:800;color:var(--primary-dark)">3,982,000</td></tr></tfoot>
+        </table>
+      </div>
+      </div>
+
+      <div class="subpanel" data-group="pla" data-panel="bol">
+      <div class="split">
+        <div class="boleta">
+          <div class="bh"><b>BOLETA DE PAGO</b> · Diciembre 2025 · Régimen 01 · Docente Principal T.C.</div>
+          <div style="padding:14px">
+            <div style="display:flex;gap:20px;flex-wrap:wrap">
+              <div style="flex:1;min-width:180px">
+                <div style="font-weight:700;color:var(--ok);font-size:11px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Ingresos</div>
+                <div class="ef-row"><span>Remuneración principal</span><span class="num">4,200.00</span></div>
+                <div class="ef-row"><span>Remun. reunificada</span><span class="num">1,850.00</span></div>
+                <div class="ef-row"><span>Bonif. por cargo</span><span class="num">620.00</span></div>
+                <div class="ef-row"><span>Homologación docente</span><span class="num">980.00</span></div>
+                <div class="ef-row tot"><span>Total ingresos</span><span class="num">7,650.00</span></div>
+              </div>
+              <div style="flex:1;min-width:180px">
+                <div style="font-weight:700;color:var(--danger);font-size:11px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Descuentos</div>
+                <div class="ef-row"><span>ONP (13%)</span><span class="num">994.50</span></div>
+                <div class="ef-row"><span>Renta 5.ª categoría</span><span class="num">210.00</span></div>
+                <div class="ef-row"><span>Cuota sindical</span><span class="num">45.00</span></div>
+                <div class="ef-row"><span>Préstamo</span><span class="num">560.50</span></div>
+                <div class="ef-row tot"><span>Total descuentos</span><span class="num">1,810.00</span></div>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:12px;border-top:2px solid var(--line)">
+              <b style="font-size:13px">NETO A PAGAR</b><b class="num" style="font-size:20px;color:var(--primary-dark)">S/ 5,840.00</b>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <h3><span class="dot"></span>Aportes del empleador</h3>
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <div class="ef-row"><span>EsSalud (9%)</span><span class="num">688.50</span></div>
+            <div class="ef-row"><span>Contribución SCTR</span><span class="num">76.50</span></div>
+            <div class="ef-row tot"><span>Total aportes</span><span class="num">765.00</span></div>
+          </div>
+          <p class="mini" style="margin-top:12px">El cálculo recorre los conceptos IMC/IMD/IMA del trabajador (<code>Plamas</code>) y totaliza <code>TOTGEN</code> y <code>TOTNET</code> conforme a <code>bolsueldo.prg</code>.</p>
+        </div>
+      </div>
+      </div>
     </section>
 
     <!-- ============ CUENTAS POR PAGAR ============ -->
     <section class="page" id="page-ctaper">
-      <div class="page-head"><div><h1>Cuentas por Pagar</h1><p>Obligaciones con proveedores y retenciones judiciales</p></div></div>
-      <div class="empty"><div class="ic"><i class="fa-solid fa-file-invoice"></i></div><p><b>Módulo de cuentas por pagar</b><br>Conecta con <code>compdev</code> (devengados), <code>movjud</code> (retenciones judiciales, 71 reg.) y <code>claing</code>. Definiremos sus pantallas en la siguiente iteración.</p></div>
+      <div class="page-head"><div><h1>Cuentas por Pagar</h1><p>Obligaciones con proveedores, devengados pendientes y retenciones judiciales</p></div><button class="btn"><i class="fa-solid fa-plus"></i> Registrar obligación</button></div>
+      <div class="grid cols-4" style="margin-bottom:14px">
+        <div class="card kpi"><div class="lab">Por pagar</div><div class="val num saldo-neg">S/ 384,600</div><div class="sub">obligaciones pendientes</div></div>
+        <div class="card kpi"><div class="lab">Proveedores con deuda</div><div class="val num">28</div><div class="sub">acreedores</div></div>
+        <div class="card kpi"><div class="lab">Retenciones judiciales</div><div class="val num">S/ 42,180</div><div class="sub">71 mandatos</div></div>
+        <div class="card kpi"><div class="chip warn">5</div><div class="lab">Vencidas</div><div class="val num">5</div><div class="sub">requieren atención</div></div>
+      </div>
+      <div class="seg-tabs" data-group="ctaper"><button class="on" data-tab="obl">Obligaciones pendientes</button><button data-tab="jud">Retenciones judiciales</button></div>
+
+      <div class="subpanel show" data-group="ctaper" data-panel="obl">
+      <div class="card">
+        <table>
+          <thead><tr><th>Documento</th><th>Proveedor</th><th>Devengado</th><th class="r">Importe</th><th>Vencimiento</th><th>Estado</th></tr></thead>
+          <tbody>
+            <tr><td class="code">F001-8421</td><td>Comercial Ferretera Tingo María SRL</td><td class="code">DEV-2231</td><td class="r num">4,320.00</td><td class="num">28/12/2025</td><td><span class="tag t-amber">Por pagar</span></td></tr>
+            <tr><td class="code">F002-1180</td><td>Importaciones Tecnológicas del Perú SAC</td><td class="code">DEV-2228</td><td class="r num">23,100.00</td><td class="num">05/01/2026</td><td><span class="tag t-blue">Programado</span></td></tr>
+            <tr><td class="code">F001-0934</td><td>Consultora Ambiental Amazonía EIRL</td><td class="code">DEV-2219</td><td class="r num">9,600.00</td><td class="num">20/12/2025</td><td><span class="tag t-red">Vencida</span></td></tr>
+            <tr><td class="code">RH-4412</td><td>Servicios profesionales · locador</td><td class="code">DEV-2210</td><td class="r num">3,500.00</td><td class="num">30/12/2025</td><td><span class="tag t-amber">Por pagar</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      </div>
+
+      <div class="subpanel" data-group="ctaper" data-panel="jud">
+      <div class="card">
+        <h3><span class="dot"></span>Retenciones por mandato judicial <span class="grow">descuento en planilla</span></h3>
+        <table>
+          <thead><tr><th>Expediente</th><th>Trabajador</th><th>Concepto</th><th class="r">% Ret.</th><th class="r">Monto mes</th><th>Estado</th></tr></thead>
+          <tbody>
+            <tr><td class="code">EXP-01142</td><td>Trabajador ••231</td><td>Pensión de alimentos</td><td class="r num">30%</td><td class="r num">840.00</td><td><span class="tag t-green">Vigente</span></td></tr>
+            <tr><td class="code">EXP-00987</td><td>Trabajador ••108</td><td>Pensión de alimentos</td><td class="r num">25%</td><td class="r num">620.00</td><td><span class="tag t-green">Vigente</span></td></tr>
+            <tr><td class="code">EXP-00754</td><td>Trabajador ••554</td><td>Embargo judicial</td><td class="r num">20%</td><td class="r num">480.00</td><td><span class="tag t-green">Vigente</span></td></tr>
+          </tbody>
+        </table>
+        <p class="mini" style="margin-top:10px">Enlazado con Planillas: la retención se descuenta del neto y se deposita al beneficiario vía Tesorería (tabla <code>movjud</code>).</p>
+      </div>
+      </div>
     </section>
 
     <!-- ============ TABLAS MAESTRAS ============ -->
@@ -695,6 +1034,16 @@
   document.querySelectorAll('.chips').forEach(g=>g.addEventListener('click',e=>{
     if(e.target.classList.contains('chipf')){g.querySelectorAll('.chipf').forEach(c=>c.classList.remove('on'));e.target.classList.add('on');}
   }));
+
+  // Sub-pestañas dentro de cada módulo
+  document.querySelectorAll('.seg-tabs[data-group]').forEach(tabs=>{
+    tabs.addEventListener('click',e=>{
+      const b=e.target.closest('button'); if(!b||!b.dataset.tab)return;
+      const g=tabs.dataset.group, t=b.dataset.tab;
+      tabs.querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on');
+      document.querySelectorAll('.subpanel[data-group="'+g+'"]').forEach(p=>p.classList.toggle('show', p.dataset.panel===t));
+    });
+  });
 
   /* ===================== CONTROL PECUARIO ===================== */
   const C={pri:'var(--primary)',sec:'var(--secondary)',info:'var(--info)',warn:'var(--warning)',dark:'var(--primary-dark)',ok:'var(--ok)',red:'var(--danger)',gray:'#94a3b8'};
