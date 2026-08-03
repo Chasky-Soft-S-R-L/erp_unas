@@ -154,6 +154,76 @@
   .kfig{display:flex;align-items:baseline;gap:6px}.kfig b{font-size:15px}
   .pill{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;background:var(--bg);border:1px solid var(--line);color:var(--muted)}
 
+  /* ===== Generador de documentos (Abastecimiento) ===== */
+  .doc-type-pills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+  .dtp{display:flex;align-items:center;gap:9px;padding:11px 15px;border:1.5px solid var(--line);border-radius:12px;background:#fff;cursor:pointer;transition:.15s;min-width:150px}
+  .dtp:hover{border-color:var(--primary-light)}
+  .dtp.on{border-color:var(--primary);background:linear-gradient(180deg,rgba(26,187,156,.08),transparent);box-shadow:0 2px 10px rgba(26,187,156,.15)}
+  .dtp .ico{width:36px;height:36px;border-radius:9px;display:grid;place-items:center;font-size:16px;background:var(--bg);color:var(--primary-dark)}
+  .dtp.on .ico{background:var(--primary);color:#fff}
+  .dtp .t b{font-size:12.5px;display:block}.dtp .t span{font-size:10.5px;color:var(--muted)}
+
+  .aba-wrap{display:grid;grid-template-columns:1.05fr 1fr;gap:16px;align-items:start}
+  .fgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  .fgrid .fld{min-width:0}.fgrid .fld input,.fgrid .fld select{min-width:0;width:100%}
+  .fspan2{grid-column:span 2}
+  .itbl{width:100%;border-collapse:collapse;margin-top:6px}
+  .itbl th{font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);font-weight:700;padding:6px 6px;text-align:left;border-bottom:1px solid var(--line)}
+  .itbl td{padding:4px 4px;border-bottom:1px solid var(--line)}
+  .itbl input{width:100%;border:1px solid transparent;border-radius:6px;padding:6px 7px;font-size:12px;font-family:inherit;background:var(--bg)}
+  .itbl input:focus{outline:none;border-color:var(--primary);background:#fff;box-shadow:0 0 0 2px rgba(26,187,156,.12)}
+  .itbl .r input{text-align:right}
+  .itbl .del{color:var(--danger);cursor:pointer;background:none;border:none;font-size:14px;padding:4px 6px;border-radius:6px}
+  .itbl .del:hover{background:rgba(239,68,68,.1)}
+  .addrow{margin-top:10px;display:inline-flex;align-items:center;gap:7px;color:var(--primary-dark);font-weight:600;font-size:12px;cursor:pointer;padding:7px 12px;border:1.5px dashed var(--primary-light);border-radius:9px;background:rgba(26,187,156,.04)}
+  .addrow:hover{background:rgba(26,187,156,.1)}
+  .tot-line{display:flex;justify-content:space-between;padding:5px 0;font-size:12.5px}
+  .tot-line.grand{font-size:16px;font-weight:800;color:var(--primary-dark);border-top:2px solid var(--line);margin-top:6px;padding-top:10px}
+  .switch{display:inline-flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;user-select:none}
+  .switch input{display:none}
+  .switch .tr{width:38px;height:21px;border-radius:20px;background:#cbd5e1;position:relative;transition:.2s}
+  .switch .tr::after{content:"";position:absolute;top:2px;left:2px;width:17px;height:17px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+  .switch input:checked + .tr{background:var(--primary)}
+  .switch input:checked + .tr::after{transform:translateX(17px)}
+
+  /* Documento imprimible */
+  .doc{background:#fff;border:1px solid var(--line);border-radius:12px;padding:26px;font-size:11.5px;box-shadow:0 6px 24px rgba(15,23,42,.06);position:sticky;top:0}
+  .doc-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid var(--sidebar);padding-bottom:14px;margin-bottom:14px;gap:14px}
+  .doc-head .inst{display:flex;gap:11px;align-items:center}
+  .doc-head .seal{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--primary),var(--primary-dark));display:grid;place-items:center;color:#fff;font-weight:800;font-size:20px;flex-shrink:0}
+  .doc-head .inst b{font-size:13px;display:block;line-height:1.2}
+  .doc-head .inst span{font-size:10px;color:var(--muted)}
+  .doc-num{text-align:right;flex-shrink:0}
+  .doc-num .tp{font-size:11px;font-weight:700;color:var(--sidebar);text-transform:uppercase;letter-spacing:.5px}
+  .doc-num .nn{font-size:19px;font-weight:800;color:var(--primary-dark);font-variant-numeric:tabular-nums}
+  .doc-num .yr{font-size:10px;color:var(--muted)}
+  .doc-party{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;margin-bottom:12px;font-size:11px}
+  .doc-party .k{color:var(--muted);font-size:9.5px;text-transform:uppercase;letter-spacing:.4px}
+  .doc-party .v{font-weight:600}
+  .doc-chain{background:var(--bg);border-radius:8px;padding:8px 10px;font-size:10px;color:var(--muted);margin-bottom:12px;display:flex;flex-wrap:wrap;gap:5px}
+  .doc-chain b{color:var(--secondary-dark)}
+  table.doc-tbl{width:100%;border-collapse:collapse;margin-bottom:10px}
+  table.doc-tbl th{background:var(--sidebar);color:#fff;font-size:9.5px;text-transform:uppercase;letter-spacing:.3px;padding:6px 7px;text-align:left;font-weight:600}
+  table.doc-tbl th.r{text-align:right}
+  table.doc-tbl td{padding:6px 7px;border-bottom:1px solid var(--line);font-size:10.5px}
+  table.doc-tbl td.r{text-align:right;font-variant-numeric:tabular-nums}
+  .doc-tot{display:flex;justify-content:flex-end;margin-bottom:6px}
+  .doc-tot .box{width:230px}
+  .doc-tot .tl{display:flex;justify-content:space-between;padding:3px 0;font-size:11px}
+  .doc-tot .tl.g{font-weight:800;color:var(--primary-dark);border-top:1.5px solid var(--line);margin-top:4px;padding-top:6px;font-size:13px}
+  .doc-letras{font-size:10px;color:var(--muted);font-style:italic;margin-bottom:16px;padding:7px 10px;background:var(--bg);border-radius:7px}
+  .doc-sign{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:26px}
+  .doc-sign div{text-align:center;border-top:1px solid var(--ink);padding-top:6px;font-size:9.5px;color:var(--muted)}
+  .doc-sign div b{display:block;color:var(--ink);font-size:10px}
+
+  @media print{
+    body *{visibility:hidden!important}
+    #doc-preview,#doc-preview *{visibility:visible!important}
+    #doc-preview{position:absolute;left:0;top:0;width:100%;border:none;box-shadow:none;padding:0}
+  }
+  @media(max-width:980px){.aba-wrap{grid-template-columns:1fr}.doc{position:static}}
+  @media(max-width:560px){.fgrid{grid-template-columns:1fr}.fspan2{grid-column:span 1}.doc-party{grid-template-columns:1fr}.doc-sign{grid-template-columns:1fr;gap:22px}}
+
   .prod-card{display:flex;gap:12px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:12px;background:#fff}
   .prod-ic{width:44px;height:44px;border-radius:11px;display:grid;place-items:center;font-size:22px;flex-shrink:0}
   .searchbar{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:9px;padding:7px 11px;font-size:12px;color:var(--muted);min-width:220px}
@@ -403,9 +473,82 @@
         <div class="card kpi"><div class="chip warn">18</div><div class="lab">Órdenes pendientes</div><div class="val num">18</div><div class="sub">por atender</div></div>
         <div class="card kpi"><div class="lab">Ítems en catálogo</div><div class="val num">18,272</div><div class="sub">SIGA</div></div>
       </div>
-      <div class="seg-tabs" data-group="alma"><button class="on" data-tab="ord">Órdenes</button><button data-tab="kar">Kárdex</button><button data-tab="stk">Stock</button><button data-tab="pac">Plan de Contrataciones</button></div>
+      <div class="seg-tabs" data-group="alma"><button class="on" data-tab="gen">Generar documento</button><button data-tab="ord">Órdenes</button><button data-tab="kar">Kárdex</button><button data-tab="stk">Stock</button><button data-tab="pac">Plan de Contrataciones</button></div>
 
-      <div class="subpanel show" data-group="alma" data-panel="ord">
+      <div class="subpanel show" data-group="alma" data-panel="gen">
+        <div class="doc-type-pills" id="dtp">
+          <div class="dtp on" data-t="oc"><div class="ico"><i class="fa-solid fa-cart-shopping"></i></div><div class="t"><b>Orden de Compra</b><span>Bienes · SIGA</span></div></div>
+          <div class="dtp" data-t="os"><div class="ico"><i class="fa-solid fa-screwdriver-wrench"></i></div><div class="t"><b>Orden de Servicio</b><span>Servicios · obras</span></div></div>
+          <div class="dtp" data-t="via"><div class="ico"><i class="fa-solid fa-plane-departure"></i></div><div class="t"><b>Viáticos</b><span>Bolsa de viaje</span></div></div>
+          <div class="dtp" data-t="pec"><div class="ico"><i class="fa-solid fa-dolly"></i></div><div class="t"><b>PECOSA</b><span>Salida de almacén</span></div></div>
+          <div class="dtp" data-t="nea"><div class="ico"><i class="fa-solid fa-inbox"></i></div><div class="t"><b>NEA</b><span>Entrada a almacén</span></div></div>
+        </div>
+
+        <div class="aba-wrap">
+          <!-- FORMULARIO -->
+          <div class="card">
+            <h3><span class="dot"></span>Datos del documento <span class="grow" id="f-title">Orden de Compra</span></h3>
+            <div class="fgrid">
+              <div class="fld"><label>Número</label><input id="f-num" value="0895" readonly></div>
+              <div class="fld"><label>Fecha</label><input id="f-fecha" type="date" value="2025-12-19"></div>
+              <div class="fld fspan2" id="wrap-prov"><label id="lbl-prov">Proveedor</label><input id="f-prov" list="provs" value="Distribuidora Agropecuaria del Huallaga SAC"><datalist id="provs"><option>Distribuidora Agropecuaria del Huallaga SAC</option><option>Comercial Ferretera Tingo María SRL</option><option>Servicios Informáticos Selva EIRL</option><option>Importaciones Tecnológicas del Perú SAC</option></datalist></div>
+              <div class="fld" id="wrap-ruc"><label id="lbl-ruc">RUC</label><input id="f-ruc" value="20489217701"></div>
+              <div class="fld"><label>Fuente Fto.</label><select id="f-fuente"><option>00 · Recursos Ordinarios</option><option selected>09 · R. Direct. Recaudados</option><option>13 · Donaciones y Transf.</option></select></div>
+              <div class="fld"><label>Meta</label><input id="f-meta" value="0087"></div>
+              <div class="fld"><label>Partida</label><input id="f-partida" value="2.3.1 5.1 2"></div>
+              <div class="fld fspan2"><label>Referencia / concepto</label><input id="f-ref" value="Adquisición de insumos de laboratorio"></div>
+            </div>
+
+            <!-- Ítems (O/C, O/S, PECOSA, NEA) -->
+            <div id="items-block">
+              <div style="margin-top:16px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Detalle</div>
+              <table class="itbl">
+                <thead><tr><th style="width:22%">Código</th><th>Descripción</th><th style="width:64px">Und.</th><th class="r" style="width:58px">Cant.</th><th class="r" style="width:78px">P. Unit.</th><th class="r" style="width:82px">Total</th><th style="width:28px"></th></tr></thead>
+                <tbody id="items-body"></tbody>
+              </table>
+              <button class="addrow" id="btn-add"><i class="fa-solid fa-plus"></i> Agregar ítem</button>
+            </div>
+
+            <!-- Viáticos -->
+            <div id="viat-block" style="display:none">
+              <div class="fgrid" style="margin-top:14px">
+                <div class="fld fspan2"><label>Comisionado</label><input id="v-com" value="Docente investigador · Esc. Agronomía"></div>
+                <div class="fld"><label>DNI</label><input id="v-dni" value="45xxxxxx"></div>
+                <div class="fld"><label>Cargo</label><input id="v-cargo" value="Docente Asociado"></div>
+                <div class="fld fspan2"><label>Destino</label><input id="v-dest" value="Lima · sustentación de proyecto de investigación"></div>
+                <div class="fld"><label>Fecha salida</label><input id="v-sal" type="date" value="2026-01-08"></div>
+                <div class="fld"><label>Fecha retorno</label><input id="v-ret" type="date" value="2026-01-10"></div>
+                <div class="fld"><label>N° de días</label><input id="v-dias" type="number" value="3"></div>
+                <div class="fld"><label>Escala diaria (S/)</label><input id="v-esc" type="number" value="320"></div>
+                <div class="fld fspan2"><label>Motivo de la comisión</label><input id="v-mot" value="Participación en congreso científico nacional"></div>
+              </div>
+            </div>
+
+            <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:16px;gap:14px;flex-wrap:wrap">
+              <label class="switch"><input type="checkbox" id="f-igv" checked><span class="tr"></span> Afecto a IGV (18%)</label>
+              <div style="min-width:200px;flex:1;max-width:260px">
+                <div class="tot-line"><span class="mini">Subtotal</span><span class="num" id="t-sub">0.00</span></div>
+                <div class="tot-line" id="igv-line"><span class="mini">IGV (18%)</span><span class="num" id="t-igv">0.00</span></div>
+                <div class="tot-line grand"><span>TOTAL S/</span><span class="num" id="t-tot">0.00</span></div>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
+              <button class="btn"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
+              <button class="btn sec" id="btn-print"><i class="fa-solid fa-file-arrow-down"></i> Extraer / Exportar PDF</button>
+              <button class="btn ghost" id="btn-clear"><i class="fa-solid fa-eraser"></i> Limpiar</button>
+            </div>
+          </div>
+
+          <!-- VISTA PREVIA -->
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;color:var(--muted);font-size:11px"><i class="fa-solid fa-eye"></i> Vista previa · se actualiza en tiempo real</div>
+            <div class="doc" id="doc-preview"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="subpanel" data-group="alma" data-panel="ord">
       <div class="card">
         <table>
           <thead><tr><th>N° O/C</th><th>Fecha</th><th>Proveedor</th><th>Referencia</th><th>Partida</th><th class="r">Importe</th><th>Estado</th></tr></thead>
@@ -1164,6 +1307,147 @@
     }
   });
   renderPec('porcino');
+
+  /* ===================== GENERADOR DE DOCUMENTOS ABAST. ===================== */
+  const ABA={
+    tipo:'oc',
+    nums:{oc:'0895',os:'0452',via:'0231',pec:'1129',nea:'0241'},
+    titles:{oc:'Orden de Compra',os:'Orden de Servicio',via:'Planilla de Viáticos',pec:'PECOSA · Pedido Comprobante de Salida',nea:'Nota de Entrada a Almacén'},
+    docTp:{oc:'Orden de Compra',os:'Orden de Servicio',via:'Bolsa de Viaje / Viáticos',pec:'PECOSA',nea:'NEA'},
+    igv:true,
+    items:{
+      oc:[['740805000082','Papel bond A4 de 80 g','MILLAR',20,26.00],['231611008471','Tóner para impresora láser','UNIDAD',6,320.00],['055300010036','Cuaderno de laboratorio','UNIDAD',40,8.50]],
+      os:[['170100031921','Servicio de mantenimiento de equipos de cómputo','SERVICIO',1,3200.00],['607500070061','Servicio de calibración de balanzas analíticas','SERVICIO',4,450.00]],
+      pec:[['740805000082','Papel bond A4 de 80 g','MILLAR',10,26.00],['055300010036','Cuaderno de laboratorio','UNIDAD',15,8.50]],
+      nea:[['231611008471','Tóner para impresora láser','UNIDAD',6,320.00]]
+    }
+  };
+  const $=id=>document.getElementById(id);
+  const fmt=n=>n.toLocaleString('es-PE',{minimumFractionDigits:2,maximumFractionDigits:2});
+  function curItems(){return ABA.items[ABA.tipo]||[]}
+  function esViat(){return ABA.tipo==='via'}
+  function esValorizado(){return ABA.tipo==='oc'||ABA.tipo==='os'}
+
+  function renderRows(){
+    const tb=$('items-body'); if(!tb)return; tb.innerHTML='';
+    curItems().forEach((it,i)=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td><input value="${it[0]}" data-i="${i}" data-f="0" class="code-in"></td>
+        <td><input value="${it[1]}" data-i="${i}" data-f="1"></td>
+        <td><input value="${it[2]}" data-i="${i}" data-f="2"></td>
+        <td class="r"><input value="${it[3]}" data-i="${i}" data-f="3" inputmode="decimal"></td>
+        <td class="r"><input value="${esValorizado()?fmt(it[4]):'—'}" data-i="${i}" data-f="4" inputmode="decimal" ${esValorizado()?'':'disabled'}></td>
+        <td class="r num" style="padding-right:8px;font-weight:600">${esValorizado()?fmt(it[3]*it[4]):'—'}</td>
+        <td><button class="del" data-del="${i}"><i class="fa-solid fa-xmark"></i></button></td>`;
+      tb.appendChild(tr);
+    });
+  }
+  function calc(){
+    let sub=0; curItems().forEach(it=>{sub+=(parseFloat(it[3])||0)*(parseFloat(it[4])||0)});
+    if(esViat()){const d=parseFloat($('v-dias').value)||0,e=parseFloat($('v-esc').value)||0;sub=d*e;}
+    const igv=ABA.igv?sub*0.18:0;
+    $('t-sub').textContent=fmt(sub);$('t-igv').textContent=fmt(igv);$('t-tot').textContent=fmt(sub+igv);
+    $('igv-line').style.opacity=ABA.igv?1:.4;
+    return{sub,igv,tot:sub+igv};
+  }
+  function numALetras(n){
+    // versión compacta para el prototipo
+    const e=Math.floor(n), c=Math.round((n-e)*100);
+    return `SON: ${e.toLocaleString('es-PE')} con ${String(c).padStart(2,'0')}/100 soles`;
+  }
+  function renderDoc(){
+    const t=calc(), tipo=ABA.tipo;
+    let filas='', party='', chain='';
+    if(esViat()){
+      party=`<div><div class="k">Comisionado</div><div class="v">${$('v-com').value}</div></div>
+        <div><div class="k">DNI</div><div class="v">${$('v-dni').value}</div></div>
+        <div><div class="k">Cargo</div><div class="v">${$('v-cargo').value}</div></div>
+        <div><div class="k">N° de días</div><div class="v">${$('v-dias').value}</div></div>
+        <div style="grid-column:span 2"><div class="k">Destino</div><div class="v">${$('v-dest').value}</div></div>
+        <div style="grid-column:span 2"><div class="k">Motivo</div><div class="v">${$('v-mot').value}</div></div>`;
+      filas=`<tr><td>Viáticos por comisión de servicios</td><td class="r">${$('v-dias').value} día(s)</td><td class="r">${fmt(parseFloat($('v-esc').value)||0)}</td><td class="r">${fmt(t.sub)}</td></tr>`;
+    }else{
+      const lp=tipo==='nea'?'Proveedor / origen':(tipo==='pec'?'Solicitante / destino':'Proveedor');
+      party=`<div><div class="k">${lp}</div><div class="v">${$('f-prov').value}</div></div>
+        <div><div class="k">RUC / Doc.</div><div class="v">${$('f-ruc').value}</div></div>
+        <div><div class="k">Fecha</div><div class="v">${$('f-fecha').value.split('-').reverse().join('/')}</div></div>
+        <div><div class="k">Fuente</div><div class="v">${$('f-fuente').value}</div></div>
+        <div style="grid-column:span 2"><div class="k">Referencia</div><div class="v">${$('f-ref').value}</div></div>`;
+      const th=esValorizado()?'<th>Cód.</th><th>Descripción</th><th>Und</th><th class="r">Cant</th><th class="r">P.Unit</th><th class="r">Total</th>':'<th>Cód.</th><th>Descripción</th><th>Und</th><th class="r">Cant</th>';
+      window._docTH=th;
+      filas=curItems().map(it=>esValorizado()
+        ?`<tr><td>${it[0]}</td><td>${it[1]}</td><td>${it[2]}</td><td class="r">${it[3]}</td><td class="r">${fmt(it[4])}</td><td class="r">${fmt(it[3]*it[4])}</td></tr>`
+        :`<tr><td>${it[0]}</td><td>${it[1]}</td><td>${it[2]}</td><td class="r">${it[3]}</td></tr>`).join('');
+    }
+    chain=`<b>Cadena:</b> Func. 22 › Prog. 048 › Meta ${$('f-meta')?$('f-meta').value:'0087'} › Partida ${$('f-partida')?$('f-partida').value:''}`;
+    const colspan=esValorizado()?6:(esViat()?4:4);
+    const th=esViat()?'<th>Concepto</th><th class="r">Cantidad</th><th class="r">Escala</th><th class="r">Importe</th>':(window._docTH||'');
+    const totBox=(esValorizado()||esViat())?`
+      <div class="doc-tot"><div class="box">
+        <div class="tl"><span>Subtotal</span><span>${fmt(t.sub)}</span></div>
+        ${ABA.igv?`<div class="tl"><span>IGV (18%)</span><span>${fmt(t.igv)}</span></div>`:''}
+        <div class="tl g"><span>TOTAL S/</span><span>${fmt(t.tot)}</span></div>
+      </div></div>
+      <div class="doc-letras">${numALetras(t.tot)}</div>`:'';
+    $('doc-preview').innerHTML=`
+      <div class="doc-head">
+        <div class="inst"><div class="seal">U</div><div class="inst"><b>Universidad Nacional</b><span>Oficina de Abastecimiento · Unidad de Logística</span></div></div>
+        <div class="doc-num"><div class="tp">${ABA.docTp[tipo]}</div><div class="nn">N° ${ABA.nums[tipo]}</div><div class="yr">Ejercicio 2025</div></div>
+      </div>
+      <div class="doc-party">${party}</div>
+      <div class="doc-chain">${chain}</div>
+      <table class="doc-tbl"><thead><tr>${th}</tr></thead><tbody>${filas}</tbody></table>
+      ${totBox}
+      <div class="doc-sign">
+        <div><b>Solicitante</b>Área usuaria</div>
+        <div><b>Jefe de Abastecimiento</b>V°B° Logística</div>
+        <div><b>Autorizado</b>Dirección General de Administración</div>
+      </div>`;
+  }
+  function renderAll(){renderRows();renderDoc();}
+
+  // eventos de items
+  if($('items-body')){
+    $('items-body').addEventListener('input',e=>{
+      const i=+e.target.dataset.i, f=+e.target.dataset.f; if(isNaN(i))return;
+      let v=e.target.value; if(f===3||f===4)v=parseFloat(v.replace(/,/g,''))||0;
+      curItems()[i][f]=v;
+      // actualizar solo total de fila + totales, sin re-render (mantener foco)
+      const row=e.target.closest('tr'); const it=curItems()[i];
+      if(esValorizado())row.querySelector('td.num').textContent=fmt((parseFloat(it[3])||0)*(parseFloat(it[4])||0));
+      calc();renderDoc();
+    });
+    $('items-body').addEventListener('click',e=>{
+      const d=e.target.closest('[data-del]'); if(!d)return;
+      curItems().splice(+d.dataset.del,1);renderAll();
+    });
+  }
+  if($('btn-add'))$('btn-add').addEventListener('click',()=>{curItems().push(['','','UNIDAD',1,0]);renderAll();});
+  if($('f-igv'))$('f-igv').addEventListener('change',e=>{ABA.igv=e.target.checked;renderDoc();});
+  ['f-prov','f-ruc','f-fecha','f-fuente','f-meta','f-partida','f-ref','v-com','v-dni','v-cargo','v-dest','v-sal','v-ret','v-dias','v-esc','v-mot'].forEach(id=>{const el=$(id);if(el)el.addEventListener('input',renderDoc);});
+  if($('v-dias'))$('v-dias').addEventListener('input',renderDoc);
+  if($('v-esc'))$('v-esc').addEventListener('input',renderDoc);
+
+  // selector de tipo de documento
+  if($('dtp'))$('dtp').addEventListener('click',e=>{
+    const p=e.target.closest('.dtp'); if(!p)return;
+    document.querySelectorAll('.dtp').forEach(x=>x.classList.remove('on')); p.classList.add('on');
+    ABA.tipo=p.dataset.t;
+    $('f-title').textContent=ABA.titles[ABA.tipo];
+    $('f-num').value=ABA.nums[ABA.tipo];
+    // mostrar bloque correcto
+    $('items-block').style.display=esViat()?'none':'block';
+    $('viat-block').style.display=esViat()?'block':'none';
+    $('wrap-prov').style.display=esViat()?'none':'block';
+    $('wrap-ruc').style.display=esViat()?'none':'block';
+    // etiqueta proveedor según doc
+    if(!esViat()){$('lbl-prov').textContent=ABA.tipo==='nea'?'Proveedor / origen':(ABA.tipo==='pec'?'Solicitante':'Proveedor');}
+    renderAll();
+  });
+  if($('btn-print'))$('btn-print').addEventListener('click',()=>window.print());
+  if($('btn-clear'))$('btn-clear').addEventListener('click',()=>{curItems().length=0;renderAll();});
+
+  renderAll();
 </script>
 </body>
 </html>
