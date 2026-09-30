@@ -3,23 +3,25 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SIGA-U · Sistema Integrado de Gestión Administrativa Universitaria</title>
+<title>SIGA-U · Sistema Integrado de Gestión Administrativa Universitaria · UNAS</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 <body>
 <div class="app">
   <div class="brand">
-    <button class="menu-toggle"><i class="fa-solid fa-bars"></i></button>
+    <button class="menu-toggle" aria-label="Menú"><i class="fa-solid fa-bars"></i></button>
     <div class="logo">S</div>
-    <div><b>SIGA&#8209;U</b><small>Gestión Administrativa Universitaria</small></div>
+    <div><b>SIGA&#8209;U</b><small>Universidad Nacional Agraria de la Selva</small></div>
   </div>
   <div class="topbar">
     <div class="crumb" id="crumb"><b>Inicio</b></div>
     <div class="spacer"></div>
-    <div class="pill-live"><i></i> Base de datos conectada</div>
-    <div class="ejercicio"><i class="fa-solid fa-calendar-days"></i> Ejercicio <b>2025</b> · <b>Diciembre</b></div>
-    <div class="user"><div class="avatar">CQ</div><div class="meta"><b>C. Quinto</b><br><span>Presupuesto</span></div></div>
+    <div class="gsearch-wrap"><i class="fa-solid fa-magnifying-glass"></i><input id="gsearch" placeholder="Buscar expediente, certificado, orden, RUC…" autocomplete="off"></div>
+    <div class="pill-live" title="PostgreSQL · réplica de lectura sincronizada"><i></i> BD transaccional en línea</div>
+    <div class="ejercicio"><i class="fa-solid fa-calendar-days"></i> Ejercicio <b>2026</b> · <b>Agosto</b></div>
+    <button class="bell" id="bell" title="Alertas"><i class="fa-solid fa-bell"></i><span class="cnt"></span></button>
+    <div class="user" title="Cambiar de usuario (demostración de roles)"></div>
   </div>
   <nav class="sidebar"></nav>
   <main class="main"></main>
@@ -31,31 +33,43 @@
 
 <!-- Datos por módulo -->
 <script src="modules/dashboard/dashboard.data.js"></script>
+<script src="modules/impacto/impacto.data.js"></script>
+<script src="modules/expediente/expediente.data.js"></script>
 <script src="modules/presupuesto/presupuesto.data.js"></script>
 <script src="modules/abastecimiento/abastecimiento.data.js"></script>
-<script src="modules/produccion/produccion.data.js"></script>
-<script src="modules/pecuario/pecuario.data.js"></script>
-<script src="modules/ventas/ventas.data.js"></script>
-<script src="modules/caja/caja.data.js"></script>
+<script src="modules/almacen/almacen.data.js"></script>
 <script src="modules/tesoreria/tesoreria.data.js"></script>
 <script src="modules/ctaper/ctaper.data.js"></script>
 <script src="modules/contabilidad/contabilidad.data.js"></script>
 <script src="modules/planilla/planilla.data.js"></script>
+<script src="modules/produccion/produccion.data.js"></script>
+<script src="modules/pecuario/pecuario.data.js"></script>
+<script src="modules/agricola/agricola.data.js"></script>
+<script src="modules/ventas/ventas.data.js"></script>
+<script src="modules/caja/caja.data.js"></script>
 <script src="modules/tablas/tablas.data.js"></script>
+<script src="modules/integracion/integracion.data.js"></script>
+<script src="modules/seguridad/seguridad.data.js"></script>
 
-<!-- Lógica por módulo -->
+<!-- Lógica por módulo (el orden define el menú) -->
 <script src="modules/dashboard/dashboard.js"></script>
+<script src="modules/impacto/impacto.js"></script>
+<script src="modules/expediente/expediente.js"></script>
 <script src="modules/presupuesto/presupuesto.js"></script>
 <script src="modules/abastecimiento/abastecimiento.js"></script>
-<script src="modules/produccion/produccion.js"></script>
-<script src="modules/pecuario/pecuario.js"></script>
-<script src="modules/ventas/ventas.js"></script>
-<script src="modules/caja/caja.js"></script>
+<script src="modules/almacen/almacen.js"></script>
 <script src="modules/tesoreria/tesoreria.js"></script>
 <script src="modules/ctaper/ctaper.js"></script>
 <script src="modules/contabilidad/contabilidad.js"></script>
 <script src="modules/planilla/planilla.js"></script>
+<script src="modules/produccion/produccion.js"></script>
+<script src="modules/pecuario/pecuario.js"></script>
+<script src="modules/agricola/agricola.js"></script>
+<script src="modules/ventas/ventas.js"></script>
+<script src="modules/caja/caja.js"></script>
 <script src="modules/tablas/tablas.js"></script>
+<script src="modules/integracion/integracion.js"></script>
+<script src="modules/seguridad/seguridad.js"></script>
 
 <script>SIGA.boot();</script>
 </body>

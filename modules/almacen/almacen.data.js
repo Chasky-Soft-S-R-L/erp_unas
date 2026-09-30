@@ -1,0 +1,51 @@
+/* Almacén · procesos L-01 a L-12 · tablero pedido por Almacén (pitch láminas 19–20) */
+SIGA.data.almacen = {
+  kpiBase: { enStock: 1284, entregados: 312, pendientes: 47, bajoMin: 23 },
+  items: [
+    { cod: '740805000071', desc: 'Papel bond A4 75 g', um: 'MILLAR', ubic: 'Central · A-01-02', stock: 420, min: 100, max: 600, cprom: 22.03 },
+    { cod: '231611008471', desc: 'Tóner HP 26A para impresora láser', um: 'UNIDAD', ubic: 'Central · A-02-01', stock: 18, min: 20, max: 80, cprom: 320 },
+    { cod: '231100010045', desc: 'Alimento balanceado porcino engorde · saco 40 kg', um: 'SACO', ubic: 'Granja · G-01', stock: 36, min: 60, max: 300, cprom: 101.5, pendiente: 'O/C 000511' },
+    { cod: '231100010031', desc: 'Alimento balanceado porcino inicio · saco 40 kg', um: 'SACO', ubic: 'Granja · G-02', stock: 120, min: 40, max: 200, cprom: 112 },
+    { cod: '740805000233', desc: 'Lapicero de tinta seca color azul', um: 'CAJA', ubic: 'Central · A-01-05', stock: 64, min: 20, max: 150, cprom: 18.5 },
+    { cod: '231100070119', desc: 'Combustible diésel B5 S-50', um: 'GALÓN', ubic: 'Tanque · T-01', stock: 240, min: 200, max: 1000, cprom: 17.4 },
+    { cod: '230800030012', desc: 'Reactivo de laboratorio · kit de fertilidad de suelos', um: 'KIT', ubic: 'Laboratorio · L-03-02', stock: 6, min: 15, max: 60, cprom: 145, pendiente: 'O/C 000512' },
+    { cod: '740805000410', desc: 'Archivador de cartón con palanca', um: 'UNIDAD', ubic: 'Central · A-01-07', stock: 210, min: 50, max: 400, cprom: 3.73 },
+    { cod: '235600100021', desc: 'Guantes de nitrilo · caja x 100', um: 'CAJA', ubic: 'Laboratorio · L-01-04', stock: 0, min: 10, max: 60, cprom: 28.5, dep: 'Lab. Sistemas de Producción' },
+    { cod: '180200040011', desc: 'Cemento Portland tipo I · bolsa 42.5 kg', um: 'BOLSA', ubic: 'Patio · P-02', stock: 3, min: 20, max: 200, cprom: 32, dep: 'Unidad Ejecutora de Inversiones' },
+    { cod: '231100090034', desc: 'Vacuna contra peste porcina clásica · frasco 50 dosis', um: 'FRASCO', ubic: 'Cámara fría · CF-01', stock: 8, min: 6, max: 40, cprom: 112.5, venc: '30/11/2026' },
+    { cod: '231100090051', desc: 'Vitamina AD3E · frasco 250 ml', um: 'FRASCO', ubic: 'Cámara fría · CF-01', stock: 12, min: 5, max: 30, cprom: 39.9, venc: '05/09/2026' },
+    { cod: '231100060022', desc: 'Urea agrícola · saco 50 kg', um: 'SACO', ubic: 'Campo · C-01', stock: 45, min: 30, max: 200, cprom: 118 },
+    { cod: '231100080015', desc: 'Envase de vidrio 1 L (Planta de Lácteos)', um: 'UNIDAD', ubic: 'Planta lácteos · PL-02', stock: 480, min: 300, max: 2000, cprom: 1.35 },
+    { cod: '231100080044', desc: 'Café pergamino (insumo de la planta)', um: 'KG', ubic: 'Planta café · PC-01', stock: 850, min: 400, max: 3000, cprom: 9.8 }
+  ],
+  // Tablero de movimientos: entregado · pendiente de entrega (los "por pedir" se calculan del stock)
+  movs: [
+    { doc: 'PECOSA 001842', cod: '740805000071', item: 'Papel bond A4 · 75 g', dep: 'Facultad de Agronomía', cant: 40, fecha: '18/08', estado: 'Entregado', pidio: 'Secretaría · Fac. Agronomía', autorizo: 'Decano de Agronomía', recibio: 'M. Soto', hora: '18/08 09:40' },
+    { doc: 'PECOSA 001841', cod: '231611008471', item: 'Tóner HP 26A', dep: 'Vicerrectorado Académico', cant: 6, fecha: '18/08', estado: 'Entregado', pidio: 'Asistente del Vicerrectorado', autorizo: 'Vicerrector Académico', recibio: 'R. Llanos', hora: '18/08 08:55' },
+    { doc: 'NEA 000318', cod: '231100010031', item: 'Alimento balanceado inicio · saco', dep: 'Granja Porcina', cant: 120, fecha: '17/08', estado: 'Pendiente de entrega', pidio: 'P. Huamán', autorizo: 'Jefe de Abastecimiento', recibio: '— por despachar', hora: '17/08 16:20', nota: 'Recibido del proveedor con NEA · por despachar' },
+    { doc: 'O/C 000512', cod: '230800030012', item: 'Reactivo de laboratorio · kit', dep: 'Lab. Análisis de Suelos', cant: 15, fecha: '18/08', estado: 'Pendiente de entrega', pidio: 'Jefe de Laboratorio', autorizo: 'Jefe de Abastecimiento', recibio: '— proveedor no entrega', hora: '18/08 08:05', nota: 'Comprometido en orden · el proveedor aún no entrega' },
+    { doc: 'O/C 000511', cod: '231100010045', item: 'Alimento balanceado engorde · saco', dep: 'Granja Porcina', cant: 120, fecha: '17/08', estado: 'Pendiente de entrega', pidio: 'P. Huamán', autorizo: 'Jefe de Abastecimiento', recibio: '— proveedor no entrega', hora: '17/08 15:40', nota: 'Comprometido en orden · entrega hasta el 22/08' },
+    { doc: 'PECOSA 001840', cod: '231100070119', item: 'Combustible diésel B5', dep: 'Servicios de maquinaria agrícola', cant: 120, fecha: '17/08', estado: 'Entregado', pidio: 'Operador de maquinaria', autorizo: 'Jefe de Servicios', recibio: 'A. Pérez', hora: '17/08 07:30' },
+    { doc: 'PECOSA 001839', cod: '231100060022', item: 'Urea agrícola · saco 50 kg', dep: 'Campos de arroz · campaña 2026-B', cant: 20, fecha: '16/08', estado: 'Entregado', pidio: 'Responsable de campaña', autorizo: 'Jefe del Centro de Producción', recibio: 'L. Rengifo', hora: '16/08 10:15', nota: 'Salida a campaña agrícola (L-12)' }
+  ],
+  // Kárdex valorizado por costo promedio ponderado: [fecha, documento, detalle, 'E'|'S'|'I', cantidad, costo unitario (solo entradas)]
+  kardex: {
+    '740805000071': [['01/08', 'Saldo inicial', 'Inventario al 31/07', 'I', 380, 21.80], ['05/08', 'NEA 000309', 'Ingreso · O/C 000495', 'E', 200, 22.50], ['08/08', 'PECOSA 001820', 'Salida · Comedor Universitario', 'S', 60], ['12/08', 'PECOSA 001831', 'Salida · Vicerrectorado Académico', 'S', 45], ['15/08', 'NEA 000316', 'Ingreso · O/C 000502', 'E', 100, 23.10], ['16/08', 'PECOSA 001836', 'Salida · Facultad de Zootecnia', 'S', 115], ['18/08', 'PECOSA 001842', 'Salida · Facultad de Agronomía', 'S', 40]],
+    '231100010045': [['01/08', 'Saldo inicial', 'Inventario al 31/07', 'I', 90, 101.50], ['06/08', 'PECOSA 001822', 'Salida · Granja Porcina · lote E-118', 'S', 30], ['12/08', 'PECOSA 001830', 'Salida · Granja Porcina · lote E-121', 'S', 24]],
+    '231100070119': [['01/08', 'Saldo inicial', 'Inventario al 31/07', 'I', 180, 17.10], ['04/08', 'NEA 000305', 'Ingreso · O/C 000491', 'E', 300, 17.55], ['09/08', 'PECOSA 001826', 'Salida · maquinaria agrícola', 'S', 120], ['17/08', 'PECOSA 001840', 'Salida · maquinaria agrícola', 'S', 120]]
+  },
+  // Toma de inventario físico programada
+  inventario: { fecha: '15/08/2026', almacen: 'Almacén central', conteo: { '740805000071': 418, '231611008471': 18, '740805000233': 65, '231100070119': 236.5, '740805000410': 210 } },
+  transferencias: [
+    ['TRF-2026-014', '14/08/2026', 'Almacén central', 'Almacén Granja Zootecnia', 'Vitamina AD3E · 6 frascos', 'Recibido'],
+    ['TRF-2026-013', '07/08/2026', 'Almacén central', 'Almacén Planta de Lácteos', 'Envases de vidrio 1 L · 500 und', 'Recibido']
+  ],
+  bajas: [
+    ['BAJ-2026-003', '12/08/2026', 'Reactivos vencidos · 4 kits', 'Vencimiento', 'Res. Directoral N.º 108-2026-DGA', 580],
+    ['BAJ-2026-002', '20/07/2026', 'Balanza analítica averiada', 'Deterioro', 'Res. Directoral N.º 091-2026-DGA', 2350]
+  ],
+  custodia: [
+    ['CUS-2026-004', 'Equipo de georradar (préstamo del INIA)', 'Instituto Nacional de Innovación Agraria', '30/09/2026'],
+    ['CUS-2026-003', 'Mobiliario del proyecto CONCYTEC', 'CONCYTEC', '31/12/2026']
+  ]
+};
