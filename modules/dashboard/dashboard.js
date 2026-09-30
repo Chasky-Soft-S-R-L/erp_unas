@@ -19,7 +19,7 @@
     D.abastecimiento.comisiones.filter(c => c.estado !== 'Rendido' && !c.anulado).forEach(c => add(c.vence, 'fa-plane-departure', 'Rendición de viáticos', c.com, c.num + ' · ' + c.dest, 'abastecimiento', c.estado === 'Rendición vencida' ? 'bad' : ''));
     D.abastecimiento.ordenes.filter(o => ['Emitida', 'Pendiente de entrega', 'Atrasada'].includes(o.estado)).forEach(o => add(o.entrega, 'fa-truck', 'Entrega de proveedor', o.prov, o.doc + ' · ' + U.money(o.imp), 'abastecimiento', o.estado === 'Atrasada' ? 'bad' : ''));
     D.abastecimiento.contratos.forEach(c => { const m = /vence (\d{2}\/\d{2}\/\d{4})/.exec(c.garantia || ''); if (m) add(m[1], 'fa-shield', 'Vence garantía', c.con, c.num + ' · ' + c.garantia.split(' · ')[0], 'abastecimiento', 'warn'); });
-    Object.values(D.pecuario).forEach(e => e.sanidad.filter(s => s[3] === 'Programada').forEach(s => add(s[0], 'fa-syringe', 'Sanidad · ' + e.nombre, s[1], s[2], 'pecuario', '')));
+    Object.values(D.pecuario.especies).forEach(e => e.plan.filter(s => s.estado === 'Programada').forEach(s => add(s.f, 'fa-syringe', 'Sanidad · ' + e.nombre, s.act, s.obj, 'pecuario', '')));
     D.agricola.campanas.filter(c => c.estado === 'En campaña').forEach(c => add(c.cosecha, 'fa-wheat-awn', 'Cosecha', c.cultivo.split(' · ')[0], c.id, 'agricola', ''));
     D.planilla.vacaciones.filter(v => /Programada/.test(v[4])).forEach(v => add(v[2].slice(0, 10), 'fa-umbrella-beach', 'Vacaciones', v[0], v[2], 'planilla', ''));
     D.almacen.items.filter(i => i.venc).forEach(i => add(i.venc, 'fa-calendar-xmark', 'Vence existencia', i.desc.split(' · ')[0], i.stock + ' ' + i.um.toLowerCase() + ' · ' + i.ubic, 'almacen', 'warn'));
