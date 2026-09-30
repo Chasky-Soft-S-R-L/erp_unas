@@ -8,7 +8,7 @@ SIGA.data.ventas = {
     { cod: 'HUE-UNI', desc: 'Huevo de gallina', um: 'NIU', pu: 0.6, afect: 'Gravado', unidad: 'Unidad avícola', ico: 'fa-egg' },
     { cod: 'LEC-FRE', desc: 'Leche fresca', um: 'LTR', pu: 3.5, afect: 'Exonerado', unidad: 'Establo lechero', ico: 'fa-bottle-droplet' },
     { cod: 'YOG-FRU', desc: 'Yogur frutado 1 L', um: 'NIU', pu: 8.5, afect: 'Gravado', unidad: 'Planta de lácteos', ico: 'fa-wine-bottle' },
-    { cod: 'QUE-FRE', desc: 'Queso fresco', um: 'KGM', pu: 18, afect: 'Gravado', unidad: 'Planta de lácteos', ico: 'fa-cheese' },
+    { cod: 'QUE-FRE', desc: 'Queso fresco', um: 'KGM', pu: 24, afect: 'Gravado', unidad: 'Planta de lácteos', ico: 'fa-cheese' },
     { cod: 'MAN-BLA', desc: 'Manjar blanco 500 g', um: 'NIU', pu: 9, afect: 'Gravado', unidad: 'Planta de lácteos', ico: 'fa-jar' },
     { cod: 'CAF-TOS', desc: 'Café tostado y molido 500 g', um: 'NIU', pu: 28, afect: 'Gravado', unidad: 'Planta de café y cacao', ico: 'fa-mug-hot' },
     { cod: 'CHO-070', desc: 'Chocolate 70% · barra 100 g', um: 'NIU', pu: 7.5, afect: 'Gravado', unidad: 'Planta de café y cacao', ico: 'fa-cookie' },

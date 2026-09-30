@@ -31,6 +31,12 @@
       () => SIGA.modules.ventas.ver(c), { label: 'Enviar', fn: () => SIGA.modules.ventas.enviar(c) }));
     D.produccion.ordenes.filter(o => o.estado === 'Terminada').forEach(o => T('Cerrar orden de producción', 'fa-box-archive', null, o.op, o.prod + ' · ' + o.unidad, SIGA.prod.costeo(o).tot, o.fin, 'produccion',
       () => SIGA.modules.produccion.verOP(o), { label: 'Cerrar', fn: () => SIGA.modules.produccion.cerrarOP(o) }));
+    (D.produccion.recepciones || []).filter(r => r.estado === 'Pendiente de análisis').forEach(r => T('Analizar materia prima', 'fa-flask-vial', null, r.id, r.mp + ' · ' + r.cant + ' ' + r.um + ' · ' + r.prov, 0, r.f, 'produccion',
+      () => SIGA.go('produccion', { cp: 'cal' }), SIGA.mrp ? { label: 'Analizar', fn: () => SIGA.mrp.analisis(r) } : null, 'Alta'));
+    (D.produccion.lotesPT || []).filter(l => l.estado === 'En cuarentena').forEach(l => T('Liberar lote en cuarentena', 'fa-lock', null, l.lote, l.prod + ' · ' + l.cant + ' ' + l.um, 0, l.f, 'produccion',
+      () => SIGA.mrp.traza(l), { label: 'Liberar', fn: () => SIGA.mrp.liberar(l) }));
+    (D.produccion.ots || []).filter(o => o.estado === 'Pendiente').forEach(o => T('Atender falla de equipo', 'fa-screwdriver-wrench', null, o.ot, ((D.produccion.equipos || []).find(e => e.cod === o.eq) || {}).nom + ' · ' + o.desc, 0, o.f, 'produccion',
+      () => SIGA.go('produccion', { cp: 'mnt' }), { label: 'Iniciar', fn: () => SIGA.mrp.iniciarOT(o) }, o.prio === 'Alta' ? 'Alta' : 'Normal'));
     if (D.contabilidad.cierres[0][0] !== 'Agosto 2026') T('Cierre contable de agosto', 'fa-lock', 'cierre', 'Agosto 2026', 'Verificación de consistencia y estados financieros', 0, '31/08/2026', 'contabilidad', () => SIGA.go('contabilidad', { k: 'cie' }), { label: 'Ir al cierre', fn: () => SIGA.go('contabilidad', { k: 'cie' }) });
     if (!D.planilla.generada) T('Generar planilla de agosto', 'fa-users', null, 'Planilla 08/2026', '1,197 trabajadores · 9 regímenes', 0, '25/08/2026', 'planilla', () => SIGA.go('planilla', { pl: 'men' }), { label: 'Ir a planillas', fn: () => SIGA.go('planilla') });
     return out;

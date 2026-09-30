@@ -32,9 +32,9 @@
     title: 'Centros de producción', icon: 'fa-industry', group: 'Centros de Producción · RDR', badge: 'RDR', badgeHot: true,
     alerts() {
       const t = P.ordenes.filter(o => o.estado === 'Terminada').length;
-      return t ? [{ lvl: 'info', icon: 'fa-industry', t: `${t} orden(es) de producción terminada(s) por ingresar a almacén`, d: 'Producto terminado con su costo', fn: () => SIGA.showTab(document.getElementById('mod-root'), 'cp', 'op') }] : [];
+      return (t ? [{ lvl: 'info', icon: 'fa-industry', t: `${t} orden(es) de producción terminada(s) por control de calidad y cierre`, d: 'Producto terminado con su costo y lote', fn: () => SIGA.showTab(document.getElementById('mod-root'), 'cp', 'op') }] : []).concat(SIGA.mrp ? SIGA.mrp.alerts() : []);
     },
-    search(q) { return P.ordenes.filter(o => (o.op + ' ' + o.prod + ' ' + o.unidad).toLowerCase().includes(q)).map(o => ({ t: o.op + ' · ' + o.prod, d: o.unidad + ' · ' + o.estado, fn: () => this.verOP(o) })); },
+    search(q) { return P.ordenes.filter(o => (o.op + ' ' + o.prod + ' ' + o.unidad).toLowerCase().includes(q)).map(o => ({ t: o.op + ' · ' + o.prod, d: o.unidad + ' · ' + o.estado, fn: () => this.verOP(o) })).concat(SIGA.mrp ? SIGA.mrp.search(q) : []); },
     render(el) {
       const U = SIGA.ui, ing = P.unidades.reduce((s, u) => s + u.ing, 0), cos = P.unidades.reduce((s, u) => s + u.cos, 0), exc = ing - cos;
       el.innerHTML = `
@@ -48,21 +48,27 @@
         { lab: 'Costo de producción', val: U.money(cos), sub: 'insumos + mano de obra + depreciación + CIF' },
         { lab: 'Excedente', val: U.money(exc), sub: '→ prioridad investigación', chip: U.pct(exc, ing, 0) }
       ])}
-      <div class="seg-tabs" data-group="cp"><button class="on" data-tab="uni">Unidades productivas</button><button data-tab="cu">Costo unitario real</button><button data-tab="op">Órdenes de producción</button><button data-tab="plan">Plan de producción</button><button data-tab="ren">Rentabilidad y excedente</button></div>
+      ${SIGA.mrp ? SIGA.mrp.kpis() : ''}
+      <div class="seg-tabs" data-group="cp"><button class="on" data-tab="uni">Unidades productivas</button><button data-tab="cu">Costo unitario real</button><button data-tab="bom">Recetas y MRP</button><button data-tab="op">Órdenes de producción</button><button data-tab="cal">Recepción y calidad</button><button data-tab="lot">Lotes y trazabilidad</button><button data-tab="mnt">Mantenimiento</button><button data-tab="plan">Plan de producción</button><button data-tab="ren">Rentabilidad y excedente</button></div>
       <div class="subpanel show" data-group="cp" data-panel="uni"><div class="card"><h3><span class="dot"></span>Unidades productivas <span class="grow">CP-01 · clic para ver detalle</span></h3><div id="cp-uni"></div></div></div>
       <div class="subpanel" data-group="cp" data-panel="cu" id="cp-p-cu"></div>
       <div class="subpanel" data-group="cp" data-panel="op"><div class="card"><h3><span class="dot"></span>Órdenes de producción con costeo <span class="grow">CP-03 a CP-09 · insumos del almacén, mano de obra, depreciación y CIF</span></h3><div id="cp-ops"></div></div></div>
+      <div class="subpanel" data-group="cp" data-panel="bom" id="cp-p-bom"></div>
+      <div class="subpanel" data-group="cp" data-panel="cal" id="cp-p-cal"></div>
+      <div class="subpanel" data-group="cp" data-panel="lot" id="cp-p-lot"></div>
+      <div class="subpanel" data-group="cp" data-panel="mnt" id="cp-p-mnt"></div>
       <div class="subpanel" data-group="cp" data-panel="plan" id="cp-p-plan"></div>
       <div class="subpanel" data-group="cp" data-panel="ren" id="cp-p-ren"></div>`;
       el.querySelector('#cp-nop').addEventListener('click', () => this.nuevaOP());
       this.paintUni(); this.paintCU(); this.paintOps(); this.paintPlan(); this.paintRen(ing, cos);
+      if (SIGA.mrp) { SIGA.mrp.paintBom(el.querySelector('#cp-p-bom')); SIGA.mrp.paintCal(el.querySelector('#cp-p-cal')); SIGA.mrp.paintLot(el.querySelector('#cp-p-lot')); SIGA.mrp.paintMnt(el.querySelector('#cp-p-mnt')); }
     },
     paintUni() {
       const U = SIGA.ui;
       const goOf = u => u.tipo === 'Pecuaria' ? 'pecuario' : u.tipo === 'Agrícola' ? 'agricola' : 'ventas';
       const uRec = { mod: 'Centros de producción', tipo: 'Ficha de unidad productiva', key: u => u.cc, title: u => u.nom, cls: false,
-        fields: u => [['Línea de producción', u.linea, 1], ['Tipo', u.tipo], ['Centro de costo presupuestal (CP-12)', `<span class="code">${u.cc}</span>`], ['Ingresos de agosto', U.money(u.ing)], ['Costo de producción', U.money(u.cos)], ['Resultado', `<b class="${u.ing - u.cos >= 0 ? 'saldo-pos' : 'saldo-neg'}">${U.money(u.ing - u.cos)}</b>`], ['Registro anterior', u.antes], ['Estado', u.estado]],
-        body: u => { const os = P.ordenes.filter(o => o.unidad === u.nom); return os.length ? `<div class="lbl-s mt mb">Órdenes de producción (${os.length})</div>` + U.table([{ k: 'op', label: 'Orden' }, { k: 'prod', label: 'Producto' }, { k: 'estado', label: 'Estado', render: o => U.tag(o.estado, ECL[o.estado]) }, { k: 'c', label: 'Costo', r: true, render: o => U.money(costeo(o).tot) }], os, { onRow: o => this.verOP(o) }) : ''; },
+        fields: u => [['Línea de producción', u.linea, 1], ['Tipo', u.tipo], ['Centro de costo presupuestal (CP-12)', `<span class="code">${u.cc}</span>`], ['Responsable', u.resp || '—'], ['Personal asignado', (u.personal || 0) + ' trabajadores'], ['Infraestructura', u.infra || '—', 1], ['Capacidad instalada', u.capacidad || '—'], ['Uso de la capacidad', u.uso != null ? `<div class="mcell">${U.meter(u.uso)}<span>${u.uso} %</span></div>` : '—'], ['Habilitación sanitaria', u.habilit || '—'], ['Ingresos de agosto', U.money(u.ing)], ['Costo de producción', U.money(u.cos)], ['Resultado', `<b class="${u.ing - u.cos >= 0 ? 'saldo-pos' : 'saldo-neg'}">${U.money(u.ing - u.cos)}</b>`], ['Registro anterior', u.antes], ['Estado', u.estado]],
+        body: u => { const os = P.ordenes.filter(o => o.unidad === u.nom), eq = (P.equipos || []).filter(e => e.unidad === u.nom), rc = (P.recetas || []).filter(r => r.unidad === u.nom); return (os.length ? `<div class="lbl-s mt mb">Órdenes de producción (${os.length})</div>` + U.table([{ k: 'op', label: 'Orden' }, { k: 'prod', label: 'Producto' }, { k: 'estado', label: 'Estado', render: o => U.tag(o.estado, ECL[o.estado]) }, { k: 'c', label: 'Costo', r: true, render: o => U.money(costeo(o).tot) }], os, { onRow: o => this.verOP(o) }) : '') + (rc.length ? `<div class="lbl-s mt mb">Recetas vigentes (${rc.length})</div>` + rc.map(r => `<div class="ef-row"><span><span class="code">${r.cod}</span> ${U.esc(r.prod)} · ${r.ver}</span><b>S/ ${SIGA.mrp.costoReceta(r).cu.toFixed(2)} por ${r.um}</b></div>`).join('') : '') + (eq.length ? `<div class="lbl-s mt mb">Equipos (${eq.length})</div>` + eq.map(e => { const p = SIGA.mrp.prox(e); return `<div class="ef-row"><span><span class="code">${e.cod}</span> ${U.esc(e.nom)}</span><b>${U.tag(e.estado, e.estado === 'Operativo' ? 't-green' : 't-red')} ${p.venc ? U.tag('preventivo vencido', 't-red') : ''}</b></div>`; }).join('') : ''); },
         edit: [{ k: 'estado', label: 'Estado', type: 'select', options: ['Operativa', 'En campaña', 'En mantenimiento', 'En implementación', 'Suspendida'], span: 1 }, { k: 'linea', label: 'Línea de producción' }],
         extra: u => [{ icon: 'fa-arrow-right', label: 'Ir a ' + SIGA.modules[goOf(u)].title, fn: x => { U.closeModal(); SIGA.go(goOf(x)); } }, { icon: 'fa-industry', label: 'Nueva orden de producción', fn: () => { U.closeModal(); this.nuevaOP(); } }] };
       document.getElementById('cp-uni').innerHTML = U.grid({ id: 'pro-uni', title: 'unidades productivas', export: 'unidades_productivas', rows: P.unidades, record: uRec, pageSize: 14, filter: { label: 'Tipo', get: r => r.tipo }, cols: [
@@ -106,12 +112,12 @@
       const U = SIGA.ui, c = costeo(o);
       const b = U.modal('Orden de producción ' + o.op + ' · ' + o.prod, `<div class="split"><div>
         ${U.table([{ k: 1, label: 'Insumo / material', render: r => r[1] + (r[0] !== '—' ? ` <span class="code">${r[0]}</span>` : '') }, { k: 2, label: 'Und' }, { k: 3, label: 'Cant.', r: true }, { k: 4, label: 'C. unit.', r: true, render: r => U.money(r[4], '') }, { k: 5, label: 'Subtotal', r: true, render: r => U.money(r[3] * r[4], '') }], o.insumos)}
-        <p class="mini mt">Los insumos con código salen del almacén de la unidad con PECOSA y se imputan al costo de la orden (L-12 · CP-04).</p></div>
+        <p class="mini mt">Los insumos con código salen del almacén de la unidad con PECOSA y se imputan al costo de la orden (L-12 · CP-04).${o.receta ? ' Generada desde la receta ' + o.receta + '.' : ''}</p></div>
         <div><div class="saldo-box"><div class="lab">Costo unitario real</div><div class="big">S/ ${c.cu.toFixed(2)}</div><div class="mini" style="color:var(--sidebar-ink)">por ${o.um} · ${U.int(c.util)} ${o.um} útiles tras ${o.merma}% de merma</div>
           <div class="row"><span>Materia prima e insumos</span><span>${U.money(c.mp)}</span></div><div class="row"><span>Mano de obra (${o.mo[0]} h × S/ ${o.mo[1]})</span><span>${U.money(c.mo)}</span></div>
           <div class="row"><span>Depreciación de equipos</span><span>${U.money(c.dep)}</span></div><div class="row"><span>Costos indirectos (${o.cif}% MP)</span><span>${U.money(c.cif)}</span></div>
           <div class="row"><span><b>Costo total</b></span><span><b>${U.money(c.tot)}</b></span></div><div class="row"><span>Ingreso proyectado (S/ ${o.pv}/${o.um})</span><span class="g">${U.money(c.ing)}</span></div>
-          <div class="row"><span>Margen estimado</span><span class="g">${U.money(c.mar)} · ${(c.mar / c.ing * 100).toFixed(0)}%</span></div></div></div></div>`,
+          <div class="row"><span>Margen estimado</span><span class="g">${U.money(c.mar)} · ${(c.mar / c.ing * 100).toFixed(0)}%</span></div></div></div></div>${SIGA.mrp ? SIGA.mrp.opExtra(o) : ''}`,
         `<button class="btn ghost" data-close>Cerrar</button><button class="btn ghost" id="op-h"><i class="fa-solid fa-clock-rotate-left"></i> Historial</button>${o.estado === 'En proceso' ? '<button class="btn ghost" id="op-av"><i class="fa-solid fa-gauge-high"></i> Registrar avance</button>' : ''}<button class="btn sec" id="op-pr"><i class="fa-solid fa-print"></i> Hoja de costos</button>${o.estado === 'Terminada' ? '<button class="btn" id="op-close"><i class="fa-solid fa-box-archive"></i> Ingresar producto terminado</button>' : ''}`, 'wide');
       b.querySelector('#op-close')?.addEventListener('click', () => { U.closeModal(); this.cerrarOP(o); });
       b.querySelector('#op-av')?.addEventListener('click', () => U.rec(opRec).editar(o));
@@ -119,6 +125,7 @@
       b.querySelector('#op-pr').addEventListener('click', () => U.rec(opRec).imprimir(o));
     },
     cerrarOP(o) {
+      if (SIGA.mrp) return SIGA.mrp.cerrarOP(o);
       const U = SIGA.ui, c = costeo(o);
       U.confirm(`¿Cerrar <b>${o.op}</b> e ingresar ${U.int(c.util)} ${o.um} de ${o.prod} al almacén de productos terminados a S/ ${c.cu.toFixed(2)} por ${o.um}?`, () => {
         o.estado = 'Cerrada'; o.avance = 100;
@@ -152,7 +159,7 @@
     },
     nuevaOP() {
       const U = SIGA.ui, un = P.unidades.filter(u => u.estado !== 'En implementación').map(u => u.nom);
-      const next = 'OP-' + (232 + P.ordenes.filter(o => o.nuevo).length);
+      const next = 'OP-' + U.pad(232 + P.ordenes.filter(o => o.nuevo).length, 4);
       const calc = (rows, v) => { const o = { insumos: rows.map(r => ['', '', '', parseFloat(r.cant) || 0, parseFloat(r.costo) || 0]), mo: [parseFloat(v.horas) || 0, parseFloat(v.tarifa) || 0], dep: parseFloat(v.dep) || 0, cif: parseFloat(v.cif) || 0, merma: parseFloat(v.merma) || 0, cant: parseFloat(v.cant) || 0, pv: parseFloat(v.pv) || 0 }; return costeo(o); };
       U.bigForm({
         title: 'Nueva orden de producción con costeo', icon: 'fa-industry',

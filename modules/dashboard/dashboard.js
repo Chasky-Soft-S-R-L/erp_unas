@@ -20,6 +20,9 @@
     D.abastecimiento.ordenes.filter(o => ['Emitida', 'Pendiente de entrega', 'Atrasada'].includes(o.estado)).forEach(o => add(o.entrega, 'fa-truck', 'Entrega de proveedor', o.prov, o.doc + ' · ' + U.money(o.imp), 'abastecimiento', o.estado === 'Atrasada' ? 'bad' : ''));
     D.abastecimiento.contratos.forEach(c => { const m = /vence (\d{2}\/\d{2}\/\d{4})/.exec(c.garantia || ''); if (m) add(m[1], 'fa-shield', 'Vence garantía', c.con, c.num + ' · ' + c.garantia.split(' · ')[0], 'abastecimiento', 'warn'); });
     Object.values(D.pecuario.especies).forEach(e => e.plan.filter(s => s.estado === 'Programada').forEach(s => add(s.f, 'fa-syringe', 'Sanidad · ' + e.nombre, s.act, s.obj, 'pecuario', '')));
+    Object.values(D.pecuario.especies).forEach(e => e.anim.filter(a => /Activ/.test(a.estado) && /Gestante|Preñada|Seca/.test(a.rep) && a.fParto && dias(pd(a.fParto)) <= 10).forEach(a => add(a.fParto, 'fa-baby', 'Parto esperado · ' + e.nombre, a.id + (a.nombre ? ' · ' + a.nombre : ''), a.ubic, 'pecuario', '')));
+    (D.produccion.ots || []).filter(o => /Programada|Pendiente/.test(o.estado)).forEach(o => add(o.f, 'fa-screwdriver-wrench', 'Mantenimiento ' + o.tipo.toLowerCase(), ((D.produccion.equipos || []).find(e => e.cod === o.eq) || {}).nom || o.eq, o.ot, 'produccion', o.prio === 'Alta' ? 'warn' : ''));
+    (D.produccion.lotesPT || []).filter(l => l.estado === 'Liberado').forEach(l => add(l.venc, 'fa-hourglass-end', 'Vence lote', l.prod, l.lote, 'produccion', 'warn'));
     D.agricola.campanas.filter(c => c.estado === 'En campaña').forEach(c => add(c.cosecha, 'fa-wheat-awn', 'Cosecha', c.cultivo.split(' · ')[0], c.id, 'agricola', ''));
     D.planilla.vacaciones.filter(v => /Programada/.test(v[4])).forEach(v => add(v[2].slice(0, 10), 'fa-umbrella-beach', 'Vacaciones', v[0], v[2], 'planilla', ''));
     D.almacen.items.filter(i => i.venc).forEach(i => add(i.venc, 'fa-calendar-xmark', 'Vence existencia', i.desc.split(' · ')[0], i.stock + ' ' + i.um.toLowerCase() + ' · ' + i.ubic, 'almacen', 'warn'));
@@ -34,7 +37,6 @@
     const efectivoCaja = sum(D.caja.ingresos.filter(r => r.medio === 'Efectivo' && !r.depositado), r => r.total);
     const tr = PL.regimenes.reduce((s, r) => s + r[2], 0), bruto = PL.regimenes.reduce((s, r) => s + r[3], 0);
     const ing = sum(D.produccion.unidades, u => u.ing), cos = sum(D.produccion.unidades, u => u.cos);
-    const top = D.produccion.unidades.slice().sort((a, b) => (b.ing - b.cos) - (a.ing - a.cos))[0];
     return [
       { t: 'Logística', icon: 'fa-boxes-stacked', go: 'abastecimiento', color: '#14967D', rows: [
         ['Órdenes en curso', A.ordenes.filter(o => ['Emitida', 'Pendiente de entrega', 'Atrasada'].includes(o.estado)).length, 'ord'], ['Requerimientos en evaluación', A.requerimientos.filter(r => r.estado === 'En evaluación').length, 'req'],
@@ -46,7 +48,7 @@
         ['Efectivo por depositar', cm(efectivoCaja), null, efectivoCaja ? 'warn' : '', 'caja']] },
       { t: 'Producción', icon: 'fa-industry', go: 'produccion', color: '#D97706', rows: [
         ['Ingresos de agosto', cm(ing), 'uni'], ['Excedente', cm(ing - cos), 'ren'], ['Órdenes en proceso', D.produccion.ordenes.filter(o => o.estado === 'En proceso').length, 'op'],
-        ['Mejor resultado', top.nom.replace('Planta de café y cacao', 'Café y cacao'), 'uni'], ['Ventas por cobrar', cm(sum(D.ventas.comprobantes.filter(c => c.op === 'Crédito' && !c.anulado), c => c.total - (c.cobrado || 0))), null, '', 'ventas']] },
+        ['Retiros sanitarios vigentes', SIGA.pec ? Object.values(D.pecuario.especies).reduce((n, e) => n + SIGA.pec.retiros(e).length, 0) : 0, null, 'warn', 'pecuario'], ['Ventas por cobrar', cm(sum(D.ventas.comprobantes.filter(c => c.op === 'Crédito' && !c.anulado), c => c.total - (c.cobrado || 0))), null, '', 'ventas']] },
       { t: 'RR.HH.', icon: 'fa-users', go: 'planilla', color: '#7C3AED', rows: [
         ['Trabajadores', U.int(tr), 'res'], ['Planilla bruta', U.mill(bruto, 2), 'men'], ['Licencias por aprobar', PL.licencias.filter(l => l[3] === 'Solicitada').length, 'vac', 'warn'],
         ['Planilla de agosto', PL.generada ? 'Generada' : 'Por generar', 'men', PL.generada ? '' : 'warn'], ['Mandatos judiciales', D.ctaper.judiciales.filter(j => j.estado !== 'Levantado').length, null, '', 'ctaper']] },
