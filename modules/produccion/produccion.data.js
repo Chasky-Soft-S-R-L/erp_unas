@@ -1,17 +1,52 @@
+/* Centros de Producción de Bienes y Servicios · procesos CP-01 a CP-12 · 14 unidades (informe Tabla 5) */
 SIGA.data.produccion = {
   unidades: [
-    ['Granja Porcina', 'Carne de cerdo', 78300, '34%', 't-green', 'Operativa', 'var(--ok)'],
-    ['Avícola', 'Pollo y huevo', 61450, '31%', 't-green', 'Operativa', 'var(--ok)'],
-    ['Galpón de Cuyes', 'Carne de cuy', 34200, '47%', 't-green', 'Operativa', 'var(--ok)'],
-    ['Establo Lechero', 'Leche fresca', 41600, '28%', 't-amber', 'Operativa', 'var(--ok)'],
-    ['Campo de Arroz', 'Arroz cáscara/pilado', 52800, '38%', 't-green', 'En campaña', 'var(--warning)'],
-    ['Campo de Maíz', 'Maíz amarillo duro', 22400, '33%', 't-green', 'En campaña', 'var(--warning)'],
-    ['Platanera', 'Plátano', 12900, '45%', 't-green', 'Operativa', 'var(--ok)'],
-    ['Lab. Análisis de Suelos', 'Servicio técnico', 8900, '61%', 't-green', 'Operativa', 'var(--ok)']
+    { nom: 'Granja porcina', linea: 'Carne de cerdo · lechones · reproductores', tipo: 'Pecuaria', cc: '104.07.13.03.02', ing: 52300, cos: 36900, estado: 'Operativa', antes: 'Cuaderno de campo' },
+    { nom: 'Unidad avícola', linea: 'Pollo de carne · huevo de gallina', tipo: 'Pecuaria', cc: '104.07.13.03.04', ing: 41800, cos: 31200, estado: 'Operativa', antes: 'Cuaderno de campo' },
+    { nom: 'Galpón de cuyes', linea: 'Carne de cuy · reproductores', tipo: 'Pecuaria', cc: '104.07.13.03.05', ing: 18600, cos: 10400, estado: 'Operativa', antes: 'Cuaderno de campo' },
+    { nom: 'Establo lechero', linea: 'Leche fresca · terneros', tipo: 'Pecuaria', cc: '104.07.13.03.03', ing: 30200, cos: 22700, estado: 'Operativa', antes: 'Cuaderno de campo' },
+    { nom: 'Campos de arroz', linea: 'Arroz en cáscara y pilado', tipo: 'Agrícola', cc: '104.07.13.02.01', ing: 34500, cos: 22800, estado: 'En campaña', antes: 'Hoja de cálculo' },
+    { nom: 'Campos de maíz', linea: 'Maíz amarillo duro', tipo: 'Agrícola', cc: '104.07.13.02.02', ing: 12400, cos: 8900, estado: 'En campaña', antes: 'Hoja de cálculo' },
+    { nom: 'Platanera', linea: 'Plátano en racimo', tipo: 'Agrícola', cc: '104.07.13.02.03', ing: 9800, cos: 5600, estado: 'Operativa', antes: 'Hoja de cálculo' },
+    { nom: 'Planta de lácteos', linea: 'Yogur · queso · manjar', tipo: 'Agroindustrial', cc: '104.07.13.04.01', ing: 27900, cos: 19300, estado: 'Operativa', antes: 'Cuaderno y hoja de cálculo' },
+    { nom: 'Planta de café y cacao', linea: 'Café tostado y molido · chocolate', tipo: 'Agroindustrial', cc: '104.07.13.04.02', ing: 31600, cos: 20100, estado: 'Operativa', antes: 'Cuaderno y hoja de cálculo' },
+    { nom: 'Planta procesadora de alimentos', linea: 'Productos transformados', tipo: 'Agroindustrial', cc: '104.07.13.03.15', ing: 0, cos: 3600, estado: 'En implementación', antes: 'En implementación' },
+    { nom: 'Vivero forestal', linea: 'Plantones forestales y frutales', tipo: 'Agrícola', cc: '104.07.13.02.05', ing: 8650, cos: 4300, estado: 'Operativa', antes: 'Cuaderno de campo' },
+    { nom: 'Laboratorio de análisis de suelos', linea: 'Servicio de análisis a terceros', tipo: 'Servicios', cc: '104.07.13.05.01', ing: 9400, cos: 3700, estado: 'Operativa', antes: 'Registro manual de solicitudes' },
+    { nom: 'Servicios de maquinaria agrícola', linea: 'Alquiler de maquinaria', tipo: 'Servicios', cc: '104.07.13.05.02', ing: 7300, cos: 3900, estado: 'Operativa', antes: 'Registro manual' },
+    { nom: 'Comedor universitario', linea: 'Alimentación a terceros', tipo: 'Servicios', cc: '104.08.02.07', ing: 14500, cos: 12100, estado: 'Operativa', antes: 'Registro manual' }
   ],
-  ordenesProd: [
-    { op: 'OP-0231', prod: 'Café tostado 500 g', pct: 80, color: 'var(--primary)' },
-    { op: 'OP-0230', prod: 'Yogurt frutado 1 L', pct: 55, color: 'var(--secondary)' },
-    { op: 'OP-0229', prod: 'Chocolate 70% barra', pct: 30, color: 'var(--info)' }
-  ]
+  // Costo unitario real (CP-07): [producto, unidad, insumos, mano de obra, depreciación, costos indirectos, merma %, precio de venta, unidad productiva]
+  costos: [
+    ['Leche fresca', 'litro', 1.42, 0.58, 0.21, 0.18, 2, 3.50, 'Establo lechero'],
+    ['Carne de cerdo beneficiado', 'kg', 7.85, 1.60, 0.40, 1.17, 0, 16.00, 'Granja porcina'],
+    ['Pollo beneficiado', 'kg', 6.10, 0.90, 0.30, 0.75, 1, 11.50, 'Unidad avícola'],
+    ['Cuy beneficiado (~900 g)', 'unidad', 9.80, 3.20, 0.90, 1.90, 0, 25.00, 'Galpón de cuyes'],
+    ['Huevo de gallina', 'unidad', 0.31, 0.06, 0.04, 0.03, 3, 0.60, 'Unidad avícola'],
+    ['Arroz pilado', 'saco 50 kg', 98.00, 22.00, 9.00, 12.00, 0, 175.00, 'Campos de arroz'],
+    ['Café tostado y molido', 'bolsa 500 g', 7.34, 0.76, 0.60, 0.83, 1, 28.00, 'Planta de café y cacao'],
+    ['Yogur frutado', 'botella 1 L', 3.90, 1.20, 0.40, 0.50, 2, 8.50, 'Planta de lácteos'],
+    ['Análisis de fertilidad de suelo', 'muestra', 38.00, 22.00, 9.00, 6.00, 0, 120.00, 'Laboratorio de análisis de suelos'],
+    ['Plantón forestal', 'unidad', 0.65, 0.40, 0.05, 0.10, 8, 2.50, 'Vivero forestal']
+  ],
+  ordenes: [
+    { op: 'OP-0231', prod: 'Café tostado y molido 500 g', unidad: 'Planta de café y cacao', cant: 800, um: 'bolsa', pv: 28, avance: 80, inicio: '12/08/2026', fin: '20/08/2026', estado: 'En proceso',
+      insumos: [['231100080044', 'Café pergamino', 'kg', 520, 9.80], ['—', 'Bolsa laminada con válvula', 'und', 800, 0.85], ['—', 'Etiqueta impresa', 'und', 800, 0.12], ['—', 'Gas GLP · balón 10 kg', 'und', 3, 58]], mo: [64, 9.5], dep: 482, cif: 8, merma: 1 },
+    { op: 'OP-0230', prod: 'Yogur frutado 1 L', unidad: 'Planta de lácteos', cant: 1200, um: 'botella', pv: 8.5, avance: 55, inicio: '14/08/2026', fin: '22/08/2026', estado: 'En proceso',
+      insumos: [['—', 'Leche fresca (del establo)', 'litro', 1250, 2.44], ['—', 'Pulpa de fruta', 'kg', 90, 6.5], ['—', 'Azúcar', 'kg', 96, 3.8], ['231100080015', 'Envase de vidrio 1 L', 'und', 1200, 1.35]], mo: [120, 9.5], dep: 380, cif: 6, merma: 2 },
+    { op: 'OP-0229', prod: 'Chocolate 70% · barra 100 g', unidad: 'Planta de café y cacao', cant: 600, um: 'barra', pv: 7.5, avance: 30, inicio: '16/08/2026', fin: '28/08/2026', estado: 'En proceso',
+      insumos: [['—', 'Cacao en grano CCN-51', 'kg', 48, 11.5], ['—', 'Azúcar', 'kg', 20, 3.8], ['—', 'Envoltura y caja', 'und', 600, 0.45]], mo: [40, 9.5], dep: 160, cif: 8, merma: 3 },
+    { op: 'OP-0228', prod: 'Queso fresco 1 kg', unidad: 'Planta de lácteos', cant: 180, um: 'kg', pv: 18, avance: 100, inicio: '10/08/2026', fin: '16/08/2026', estado: 'Terminada',
+      insumos: [['—', 'Leche fresca (del establo)', 'litro', 1440, 2.44], ['—', 'Cuajo y sal', 'kg', 6, 12]], mo: [36, 9.5], dep: 120, cif: 6, merma: 4 },
+    { op: 'OP-0227', prod: 'Engorde porcino · lote E-121', unidad: 'Granja porcina', cant: 2280, um: 'kg en pie', pv: 9.2, avance: 60, inicio: '05/05/2026', fin: '03/09/2026', estado: 'En proceso',
+      insumos: [['231100010045', 'Alimento balanceado engorde', 'saco', 96, 101.5], ['231100010031', 'Alimento balanceado inicio', 'saco', 28, 112], ['231100090034', 'Vacunas y sanidad', 'frasco', 6, 112.5]], mo: [310, 9.5], dep: 640, cif: 5, merma: 1 }
+  ],
+  // Plan de producción del mes (CP-02): [unidad, producto, unidad de medida, plan, real a la fecha]
+  plan: [
+    ['Establo lechero', 'Leche fresca', 'litros', 10500, 6048], ['Granja porcina', 'Carne de cerdo', 'kg', 4200, 2480], ['Unidad avícola', 'Huevo', 'unidades', 10400, 6192],
+    ['Galpón de cuyes', 'Cuy beneficiado', 'unidades', 110, 64], ['Planta de lácteos', 'Yogur frutado', 'litros', 2400, 1520], ['Planta de café y cacao', 'Café tostado', 'kg', 520, 310]
+  ],
+  mensual: { labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago'], ing: [248, 262, 281, 290, 276, 301, 312, 299], cos: [176, 181, 192, 198, 190, 205, 210, 206] },
+  merma: [['Planta de lácteos', 'Suero y producto fuera de especificación', 2.4, 612], ['Vivero forestal', 'Plantones no viables', 8.1, 190], ['Unidad avícola', 'Huevo roto o sucio', 3.2, 186], ['Planta de café y cacao', 'Grano defectuoso en selección', 1.4, 71]],
+  excedente: [['Investigación (prioritario · Ley 30220)', 50], ['Reinversión y equipamiento', 30], ['Retribución a participantes', 20]]
 };
