@@ -94,10 +94,10 @@
           <p>Buenos días, <b>${SIGA.ctx.user.nombre}</b> · ${SIGA.ctx.user.rolTx}. Un solo sistema, un solo dato, una sola verdad: presupuesto, logística, tesorería, contabilidad, planillas y centros de producción en línea con SIAF-SP, SIGA-MEF y SUNAT.</p></div>
           <div class="cmd-clock"><b id="db-clock">${U.clock()}</b><span>${SIGA.ctx.hoy} · hora oficial</span>
             <div class="cmd-sys">${['SIAF-SP', 'SUNAT', 'SIGA-MEF', 'Banco'].map(s => `<span class="${D.integracion.caido[s] ? 'off' : 'on'}"><i></i>${s}</span>`).join('')}</div></div></div>
-        <div class="cmd-stats">${d.hero.map(h => `<div><b>${h[0]}</b><span>${h[1]}</span></div>`).join('')}<div><b data-cu="${(pim / 1e6).toFixed(2)}" data-dec="2" data-pre="S/ " data-suf=" M">S/ ${(pim / 1e6).toFixed(2)} M</b><span>PIM 2026</span></div>
+        <div class="cmd-stats">${d.hero.map(h => `<div><b>${h[1] === 'Módulos integrados' ? Object.keys(SIGA.modules).length : h[0]}</b><span>${h[1]}</span></div>`).join('')}<div><b data-cu="${(pim / 1e6).toFixed(2)}" data-dec="2" data-pre="S/ " data-suf=" M">S/ ${(pim / 1e6).toFixed(2)} M</b><span>PIM 2026</span></div>
           <div class="cmd-inbox" id="db-inbox"><b>${bandeja}</b><span>tareas en mi bandeja</span><i class="fa-solid fa-arrow-right"></i></div></div>
       </div>
-      <div class="page-head"><div><h1>Tablero de control</h1><p>Ejecución consolidada de todas las fuentes · cifras vivas de los 18 módulos · actualizado ${U.now()}</p></div>
+      <div class="page-head"><div><h1>Tablero de control</h1><p>Ejecución consolidada de todas las fuentes · cifras vivas de los ${Object.keys(SIGA.modules).length} módulos · actualizado ${U.now()}</p></div>
         <div class="row-flex"><button class="btn ghost" id="db-exp"><i class="fa-solid fa-file-excel"></i> Exportar</button><button class="btn ghost" id="db-rep"><i class="fa-solid fa-print"></i> Reporte ejecutivo</button><button class="btn ghost" id="db-imp"><i class="fa-solid fa-chart-line"></i> Impacto</button><button class="btn" id="db-new"><i class="fa-solid fa-plus"></i> Nueva certificación</button></div></div>
       <div class="ktiles mb">${tiles.map((k, i) => `<div class="ktile" data-go="${k.go}" style="--kc:${k.color}"><div class="kt-h"><span>${k.lab}</span><em>${k.chip}</em></div>
         <b data-cu="${k.val.toFixed(k.dec)}" data-dec="${k.dec}" data-pre="${k.pre}" data-suf="${k.suf}">${k.pre}${k.val.toFixed(k.dec)}${k.suf}</b><div class="kt-s">${k.sub}</div>${U.spark(k.spark, k.color, 36)}</div>`).join('')}</div>
