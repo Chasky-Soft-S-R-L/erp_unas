@@ -125,3 +125,33 @@ SIGA.data.presupuesto = {
     ['231100070119', 'Combustible diésel B5 S-50', 'GALÓN', 17.4]
   ]
 };
+
+/* ---- Certificaciones históricas del periodo (generadas de forma determinista, dentro del certificado de cada específica) ---- */
+(function () {
+  const D = SIGA.data.presupuesto, G = SIGA.gen, r = G.rng(2026);
+  const usados = new Set(['000402', '000410']);
+  const obj = {
+    M02: [['180300020044', 'Servicio de mantenimiento de vehículos', 'SERVICIO'], ['960200050012', 'Servicio de impresión y encuadernación', 'SERVICIO'], ['170100031921', 'Servicio de soporte informático', 'SERVICIO']],
+    M03: [['740805000071', 'Papel bond A4 75 g', 'MILLAR'], ['740805000410', 'Archivador de cartón con palanca', 'UNIDAD']],
+    M04: [['231100010045', 'Alimento balanceado porcino engorde · saco 40 kg', 'SACO'], ['231100010031', 'Alimento balanceado porcino inicio · saco 40 kg', 'SACO']],
+    M07: [['231100070201', 'Víveres secos para el Comedor Universitario', 'LOTE'], ['231100070202', 'Carnes y verduras frescas · Comedor', 'LOTE']],
+    M08: [['740805000082', 'Computadora personal portátil', 'UNIDAD'], ['602200000871', 'Servidor de almacenamiento', 'UNIDAD']],
+    M10: [['—', 'Servicio de docencia · ciclo intensivo CEPRE', 'SERVICIO']],
+    M11: [['—', 'Viáticos por comisión de servicio', 'DÍA']],
+    M06: [['—', 'Valorización de obra · pabellón de laboratorios', 'GLB'], ['—', 'Adelanto de materiales de obra', 'GLB']]
+  };
+  const just = { M02: 'Servicios generales de la DGA', M03: 'Útiles de oficina del Vicerrectorado', M04: 'Alimentación del plantel porcino', M07: 'Abastecimiento del Comedor Universitario', M08: 'Equipamiento tecnológico de la UEI', M10: 'Docencia del Centro Preuniversitario', M11: 'Comisiones de servicio de la DGA', M06: 'Ejecución de obra · pabellón de laboratorios' };
+  const fases = ['Pagado', 'Pagado', 'Pagado', 'Girado', 'Devengado', 'Comprometido', 'Pagado', 'Pagado', 'Girado', 'Pagado', 'Devengado', 'Pagado', 'Pagado', 'Anulada', 'Pagado', 'Pagado'];
+  let n = 412;
+  for (let i = 0; i < 24; i++) {
+    let num; do { num = G.pad(n--); } while (usados.has(num) || D.certificaciones.some(c => c.num === num));
+    const mid = G.pick(r, Object.keys(obj)), m = D.marco.find(x => x.id === mid);
+    const usado = D.certificaciones.filter(c => c.marco === mid && c.fase !== 'Anulada').reduce((s, c) => s + c.monto, 0);
+    const cap = m.certTotal - usado; if (cap < 1000) { i--; continue; }
+    const monto = Math.min(G.amt(r, cap * 0.02, cap * 0.18, 10), cap * 0.25);
+    const it = G.pick(r, obj[mid]), q = it[2] === 'SERVICIO' || it[2] === 'GLB' || it[2] === 'LOTE' ? 1 : G.int(r, 2, 40);
+    const fase = G.pick(r, fases), dia = 222 - Math.floor((412 - +num) / 2.4);
+    D.certificaciones.push({ num, fecha: G.fecha(r, dia, dia), marco: mid, monto: Math.round(monto * 100) / 100, fase, user: 'C. Quinto', aprob: 'M. Ríos', siaf: '2026-00' + (44400 + (+num % 1000)), exp: 'EXP-2026-' + num.slice(-4), just: just[mid], items: [[it[0], it[1], it[2], q, Math.round(monto / q * 100) / 100]], motivo: fase === 'Anulada' ? 'Desistimiento del área usuaria' : undefined, anulado: fase === 'Anulada' || undefined });
+  }
+  D.certificaciones.sort((a, b) => b.num.localeCompare(a.num));
+})();

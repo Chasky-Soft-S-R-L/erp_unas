@@ -1,7 +1,37 @@
 /* Cuentas por pagar · obligaciones por proveedor y vencimiento, antigüedad y mandatos judiciales */
 (function () {
   const C = SIGA.data.ctaper;
-  const ECLS = { 'Por pagar': 't-amber', Programado: 't-blue', Vencida: 't-red', Pagado: 't-green' };
+  const ECLS = { 'Por pagar': 't-amber', Programado: 't-blue', Vencida: 't-red', Pagado: 't-green', Anulado: 't-gray' };
+  const dtbl = (head, rows) => `<table class="doc-tbl"><thead><tr>${head.map(h => `<th class="${h[1] ? 'r' : ''}">${h[0]}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${r.map((c, i) => `<td class="${head[i][1] ? 'r' : ''}">${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+  const programar = o => { const a = o.estado; o.estado = 'Programado'; o.prioridad = a === 'Vencida' ? 'Urgente' : o.prioridad; SIGA.log('Cuentas por pagar', 'Programación de pago', o.doc, a, 'Programado'); };
+  const aTesoreria = o => { SIGA.ui.closeModal(); SIGA.go('tesoreria'); setTimeout(() => SIGA.modules.tesoreria.nuevoCP(o), 80); };
+  const oblRec = SIGA.recs.obligacion = {
+    mod: 'Cuentas por pagar', tipo: 'Obligación por pagar', office: 'Oficina de Contabilidad · Cuentas por pagar', key: r => r.doc, title: r => r.tipo + ' ' + r.doc + ' · ' + r.prov, cls: false,
+    fields: o => { const U = SIGA.ui; return [['Comprobante', `<span class="code">${o.doc}</span> · ${o.tipo}`], ['Proveedor', U.esc(o.prov), 1], ['RUC', o.ruc], ['Devengado SIAF', `<span class="code">${o.dev}</span>`], ['Importe', `<b>${U.money(o.imp)}</b>`], ['Emisión', o.emision], ['Vencimiento', o.venc + ` <span class="mini">(${o.dias < 0 ? 'hace ' + (-o.dias) + ' d' : 'en ' + o.dias + ' d'})</span>`], ['Prioridad', o.prioridad], ['Estado', U.tag(o.estado, ECLS[o.estado])], ['Comprobante de pago', o.cp || '—'], ...(o.obs ? [['Observación', U.esc(o.obs), 1]] : []), ...(o.motivo ? [['Motivo de anulación', U.esc(o.motivo), 1]] : [])]; },
+    body: o => SIGA.ui.timeline([{ t: 'Conformidad y devengado', sub: o.dev + ' · ' + o.emision, st: 'done' }, { t: 'Programado para pago', sub: o.estado === 'Por pagar' || o.estado === 'Vencida' ? 'pendiente' : 'Tesorería', st: o.estado === 'Por pagar' || o.estado === 'Vencida' ? 'cur' : o.estado === 'Anulado' ? 'bad' : 'done' }, { t: 'Girado', sub: o.cp || 'sin comprobante de pago', st: o.cp ? 'done' : '' }, { t: 'Pagado', sub: o.estado === 'Pagado' ? 'abono confirmado' : '', st: o.estado === 'Pagado' ? 'done' : '' }]),
+    edit: [{ k: 'prioridad', label: 'Prioridad', type: 'select', options: ['Normal', 'Urgente', 'Programada'], span: 1 }, { k: 'venc', label: 'Vencimiento (dd/mm/aaaa)', span: 1 }, { k: 'obs', label: 'Observación', type: 'textarea' }],
+    canEdit: o => o.estado !== 'Pagado',
+    onEdit: o => { const [d, m, y] = String(o.venc).split('/'); const x = new Date(+y, m - 1, +d); if (!isNaN(x)) { o.dias = Math.round((x - new Date(2026, 7, 18)) / 864e5); if (o.estado !== 'Programado') o.estado = o.dias < 0 ? 'Vencida' : 'Por pagar'; } },
+    anular: true, anularLabel: 'Anular obligación (nota de crédito)', canAnular: o => (o.estado === 'Por pagar' || o.estado === 'Vencida') && !o.cp,
+    extra: o => [
+      ...(o.estado === 'Por pagar' || o.estado === 'Vencida' ? [{ icon: 'fa-calendar-check', label: 'Programar pago', fn: x => { programar(x); SIGA.ui.closeModal(); SIGA.ui.toast('Pago de ' + x.doc + ' programado · visible en Tesorería'); SIGA.refresh(); } }] : []),
+      ...(!o.cp && o.estado !== 'Pagado' && o.estado !== 'Anulado' ? [{ icon: 'fa-arrow-right-to-bracket', label: 'Enviar a Tesorería (girar)', fn: aTesoreria }] : []),
+      ...(o.cp ? [{ icon: 'fa-money-check-dollar', label: 'Ver comprobante de pago', fn: x => { const c = SIGA.data.tesoreria.cp.find(k => k.doc === x.cp); if (c) SIGA.ui.rec(SIGA.recs.cp).ver(c); } }] : []),
+      ...(o.estado !== 'Pagado' && o.estado !== 'Anulado' ? [{ icon: 'fa-scale-unbalanced', label: 'Aplicar penalidad por mora', menuOnly: true, fn: x => SIGA.modules.ctaper.penalidad(x) }] : []),
+      { icon: 'fa-file-contract', label: 'Constancia de deuda / pago', menuOnly: true, fn: x => SIGA.ui.rec(oblRec).imprimir(x) }
+    ],
+    print: o => { const U = SIGA.ui; return { tipo: o.estado === 'Pagado' ? 'Constancia de pago a proveedor' : 'Constancia de obligación pendiente', num: o.doc, pairs: [['Proveedor', U.esc(o.prov), 1], ['RUC', o.ruc], ['Devengado', o.dev], ['Emisión', o.emision], ['Vencimiento', o.venc], ['Estado', o.estado], ['Comprobante de pago', o.cp || '—']], body: dtbl([['Concepto'], ['Importe S/', 1]], [[o.tipo + ' ' + o.doc, U.money(o.imp, '')]]) + `<p class="mini">${U.montoLetras(o.imp)}</p>` }; }
+  };
+  const judRec = {
+    mod: 'Cuentas por pagar', tipo: 'Constancia de retención judicial', office: 'Oficina de Recursos Humanos · Tesorería', key: r => r.exp, title: r => 'Mandato ' + r.exp, cls: false, anuladoValor: 'Levantado',
+    fields: j => { const U = SIGA.ui, t = j.concepto.startsWith('Pensión') ? 60 : 33.3; return [['Expediente', `<span class="code">${j.exp}</span>`], ['Trabajador', j.trab], ['Concepto', j.concepto], ['Porcentaje', j.pct + '% (tope ' + t + '%)'], ['Neto base', U.money(j.base)], ['Retención mensual', `<b>${U.money(j.monto)}</b>`], ['Depósito a', j.benef, 1], ['Estado', U.tag(j.estado || 'Vigente', j.estado === 'Levantado' ? 't-gray' : 't-green')]]; },
+    body: j => { const U = SIGA.ui; return `<div class="lbl-s mt mb">Depósitos de los últimos meses</div>` + U.table([{ k: 0, label: 'Planilla' }, { k: 1, label: 'Depósito', r: true, render: x => U.money(x[1]) }, { k: 2, label: 'Operación', cls: 'mini' }], ['Agosto 2026', 'Julio 2026', 'Junio 2026', 'Mayo 2026'].map((m, i) => [m, j.monto, i ? 'BN-OP ' + (48812 - i * 311) : 'programado'])); },
+    edit: [{ k: 'pct', label: 'Porcentaje ordenado %', type: 'number', span: 1 }, { k: 'base', label: 'Neto base S/', type: 'number', span: 1 }, { k: 'benef', label: 'Cuenta del beneficiario' }],
+    canEdit: j => j.estado !== 'Levantado',
+    onEdit: j => { const t = j.concepto.startsWith('Pensión') ? 60 : 33.3; if (j.pct > t) { j.pct = t; SIGA.ui.toast('El porcentaje se ajustó al tope legal de ' + t + '%', 'err'); } j.monto = Math.round(j.base * j.pct) / 100; },
+    anular: true, anularLabel: 'Levantar mandato', canAnular: j => j.estado !== 'Levantado',
+    print: j => ({ pairs: [['Expediente', j.exp], ['Trabajador', j.trab], ['Concepto', j.concepto], ['Porcentaje', j.pct + '%'], ['Retención mensual', SIGA.ui.money(j.monto)], ['Beneficiario', j.benef, 1]], body: `<p>Se deja constancia de que la Universidad Nacional Agraria de la Selva retiene y deposita mensualmente el monto indicado en cumplimiento del mandato judicial.</p>` })
+  };
   const bucket = o => o.dias >= 0 ? 'Por vencer' : -o.dias <= 30 ? '1–30 días' : -o.dias <= 60 ? '31–60 días' : -o.dias <= 90 ? '61–90 días' : 'Más de 90 días';
   const B = ['Por vencer', '1–30 días', '31–60 días', '61–90 días', 'Más de 90 días'];
   const pend = () => C.obligaciones.filter(o => o.estado !== 'Pagado');
@@ -34,18 +64,40 @@
     },
     paintObl() {
       const U = SIGA.ui;
-      document.getElementById('c-tobl').innerHTML = U.table([
-        { k: 'doc', label: 'Documento', render: r => `<span class="code">${r.doc}</span><div class="mini">${r.tipo}</div>` }, { k: 'prov', label: 'Proveedor', render: r => r.prov + (r.obs ? `<div class="mini" style="color:#b45309">${r.obs}</div>` : '') },
-        { k: 'dev', label: 'Devengado', render: r => `<span class="code">${r.dev}</span>` }, { k: 'imp', label: 'Importe', r: true, render: r => U.money(r.imp) },
-        { k: 'venc', label: 'Vencimiento', render: r => r.venc + `<div class="mini" style="color:${r.dias < 0 ? 'var(--danger)' : 'var(--muted)'}">${r.dias < 0 ? 'hace ' + (-r.dias) + ' días' : 'en ' + r.dias + ' días'}</div>` },
-        { k: 'estado', label: 'Estado', render: r => U.tag(r.estado, ECLS[r.estado]) + (r.cp ? `<div class="mini">${r.cp}</div>` : '') }
-      ], C.obligaciones, {
-        rowCls: r => r.estado === 'Vencida' ? 'row-bad' : r.nuevo ? 'row-new' : '',
+      document.getElementById('c-tobl').innerHTML = U.grid({
+        id: 'cxp-obl', title: 'obligaciones', export: 'obligaciones_por_pagar', rows: C.obligaciones, record: oblRec, pageSize: 12,
+        filter: { label: 'Estado', get: r => r.estado },
+        cols: [
+          { k: 'doc', label: 'Documento', render: r => `<span class="code">${r.doc}</span><div class="mini">${r.tipo}</div>` }, { k: 'prov', label: 'Proveedor', render: r => U.esc(r.prov) + (r.obs ? `<div class="mini" style="color:#b45309">${U.esc(r.obs)}</div>` : ''), csv: r => r.prov },
+          { k: 'dev', label: 'Devengado', render: r => `<span class="code">${r.dev}</span>` }, { k: 'imp', label: 'Importe', r: true, render: r => U.money(r.imp) },
+          { k: 'venc', label: 'Vencimiento', sv: r => r.dias, render: r => r.venc + `<div class="mini" style="color:${r.dias < 0 && r.estado !== 'Pagado' ? 'var(--danger)' : 'var(--muted)'}">${r.dias < 0 ? 'hace ' + (-r.dias) + ' días' : 'en ' + r.dias + ' días'}</div>` },
+          { k: 'estado', label: 'Estado', render: r => U.tag(r.estado, ECLS[r.estado]) + (r.cp ? `<div class="mini">${r.cp}</div>` : '') }
+        ],
+        rowCls: r => r.estado === 'Vencida' ? 'row-bad' : (r.nuevo ? 'row-new' : '') + (r.anulado ? ' row-void' : ''),
         actions: [
-          { icon: 'fa-calendar-check', title: 'Programar pago', show: r => r.estado === 'Por pagar' || r.estado === 'Vencida', fn: o => { const a = o.estado; o.estado = 'Programado'; o.prioridad = a === 'Vencida' ? 'Urgente' : o.prioridad; SIGA.log('Cuentas por pagar', 'Programación de pago', o.doc, a, 'Programado'); SIGA.ui.toast('Pago de ' + o.doc + ' programado · visible en Tesorería'); SIGA.refresh(); } },
-          { icon: 'fa-arrow-right-to-bracket', title: 'Enviar a Tesorería para girado', show: r => !r.cp && r.estado !== 'Pagado', fn: o => { SIGA.go('tesoreria'); setTimeout(() => SIGA.modules.tesoreria.nuevoCP(o), 80); } }
-        ]
+          { icon: 'fa-calendar-check', title: 'Programar pago', show: r => r.estado === 'Por pagar' || r.estado === 'Vencida', fn: o => { programar(o); U.toast('Pago de ' + o.doc + ' programado · visible en Tesorería'); SIGA.refresh(); } },
+          { icon: 'fa-arrow-right-to-bracket', title: 'Enviar a Tesorería para girado', show: r => !r.cp && r.estado !== 'Pagado' && r.estado !== 'Anulado', fn: aTesoreria }
+        ],
+        tools: [{ icon: 'fa-plus', label: 'Registrar obligación', primary: true, fn: () => this.nueva() }],
+        bulk: [
+          { icon: 'fa-calendar-check', label: 'Programar pago', fn: rs => { const x = rs.filter(o => o.estado === 'Por pagar' || o.estado === 'Vencida'); x.forEach(programar); U.toast(x.length + ' obligaciones programadas · ' + U.money(x.reduce((s, o) => s + o.imp, 0))); SIGA.refresh(); } },
+          { icon: 'fa-envelope', label: 'Estado de cuenta a proveedores', fn: rs => U.mail({ asunto: 'Estado de cuenta · UNAS · ' + [...new Set(rs.map(o => o.prov))].length + ' proveedor(es)', adj: 'estado_cuenta_proveedores.pdf', to: 'proveedores@unas.edu.pe' }) }
+        ],
+        foot: rs => { const p = rs.filter(o => o.estado !== 'Pagado' && o.estado !== 'Anulado'); return `<tr><td colspan="4" class="r"><b>Pendiente de pago (${p.length})</b></td><td class="r num"><b>${U.money(p.reduce((s, o) => s + o.imp, 0))}</b></td><td colspan="3"></td></tr>`; }
       });
+    },
+    penalidad(o) {
+      const U = SIGA.ui;
+      U.formModal('<i class="fa-solid fa-scale-unbalanced"></i> Penalidad por mora · ' + o.doc, [
+        { k: 'dias', label: 'Días de atraso en la entrega', type: 'number', value: 5, span: 1 }, { k: 'plazo', label: 'Plazo contractual (días)', type: 'number', value: 30, span: 1 },
+        { k: 'info', label: 'Fórmula (RLCE art. 162)', value: 'Penalidad diaria = 0.10 × monto / (F × plazo) · F = 0.40', ro: true }
+      ], v => {
+        const d = +v.dias || 0, pl = +v.plazo || 1, pen = Math.min(o.imp * 0.1, Math.round(d * 0.10 * o.imp / (0.40 * pl) * 100) / 100);
+        if (d <= 0) { U.toast('Indique los días de atraso', 'err'); return; }
+        const antes = o.imp; o.imp = Math.round((o.imp - pen) * 100) / 100; o.obs = 'Penalidad por mora ' + d + ' días · ' + U.money(pen);
+        SIGA.log('Cuentas por pagar', 'Aplicación de penalidad', o.doc, U.money(antes), U.money(o.imp) + ' · penalidad ' + U.money(pen));
+        U.closeModal(); U.toast('Penalidad de ' + U.money(pen) + ' aplicada a ' + o.doc + ' (tope 10%)'); SIGA.refresh();
+      }, 'Aplicar penalidad');
     },
     paintAging() {
       const U = SIGA.ui, P = pend();
@@ -59,18 +111,23 @@
     paintCal() {
       const U = SIGA.ui, P = pend().filter(o => o.dias >= 0);
       const sem = [['17 – 23 ago', 0, 5], ['24 – 30 ago', 6, 12], ['31 ago – 6 set', 13, 19], ['7 – 13 set', 20, 26], ['14 – 20 set', 27, 33]];
-      document.getElementById('c-p-cal').innerHTML = `<div class="grid cols-5">${sem.map(s => { const os = P.filter(o => o.dias >= s[1] && o.dias <= s[2]); return `<div class="card"><h3><span class="dot"></span>${s[0]}</h3><div class="big-n" style="font-size:20px">${U.money(os.reduce((a, o) => a + o.imp, 0))}</div><div class="mini mb">${os.length} obligación(es)</div>${os.map(o => `<div class="mini-card mb"><b style="font-size:11.5px">${o.prov}</b><div class="s">${o.doc} · vence ${o.venc}</div><div class="row-flex" style="justify-content:space-between"><b>${U.money(o.imp)}</b>${U.tag(o.estado, ECLS[o.estado])}</div></div>`).join('')}</div>`; }).join('')}</div>`;
+      const host = document.getElementById('c-p-cal');
+      host.onclick = e => { const c = e.target.closest('[data-ob]'); if (c) U.rec(oblRec).ver(C.obligaciones.find(o => o.doc === c.dataset.ob)); };
+      host.innerHTML = `<div class="grid cols-5">${sem.map(s => { const os = P.filter(o => o.dias >= s[1] && o.dias <= s[2]); return `<div class="card"><h3><span class="dot"></span>${s[0]}</h3><div class="big-n" style="font-size:20px">${U.money(os.reduce((a, o) => a + o.imp, 0))}</div><div class="mini mb">${os.length} obligación(es)</div>${os.map(o => `<div class="mini-card mb clickable" data-ob="${U.esc(o.doc)}"><b style="font-size:11.5px">${o.prov}</b><div class="s">${o.doc} · vence ${o.venc}</div><div class="row-flex" style="justify-content:space-between"><b>${U.money(o.imp)}</b>${U.tag(o.estado, ECLS[o.estado])}</div></div>`).join('')}</div>`; }).join('')}</div>`;
     },
     paintJud() {
       const U = SIGA.ui;
       document.getElementById('c-p-jud').innerHTML = `<div class="card"><h3><span class="dot"></span>Retenciones por mandato judicial <span class="grow">R-07 · se descuentan en planilla con su tope legal y Tesorería las deposita</span></h3><div id="j-t"></div>
         <div class="row-flex mt"><button class="btn sm" id="j-new"><i class="fa-solid fa-plus"></i> Registrar mandato</button><span class="mini">Enlazado con Planillas (tabla <code>movjud</code>): la retención se aplica sobre el neto y se deposita al beneficiario.</span></div></div>`;
-      document.getElementById('j-t').innerHTML = U.table([
-        { k: 'exp', label: 'Expediente', render: r => `<span class="code">${r.exp}</span>` }, { k: 'trab', label: 'Trabajador' }, { k: 'concepto', label: 'Concepto' },
-        { k: 'pct', label: '% ret.', r: true, render: r => r.pct + '%' }, { k: 'monto', label: 'Monto mes', r: true, render: r => U.money(r.monto) },
-        { k: 'tope', label: 'Tope legal', render: r => { const t = r.concepto.startsWith('Pensión') ? 60 : 33.3; return r.pct <= t ? U.tag('✓ dentro del tope (' + t + '%)', 't-green') : U.tag('excede el tope', 't-red'); } },
-        { k: 'benef', label: 'Depósito a', cls: 'mini' }
-      ], C.judiciales);
+      document.getElementById('j-t').innerHTML = U.grid({ id: 'cxp-jud', title: 'mandatos judiciales', export: 'mandatos_judiciales', rows: C.judiciales, record: judRec, filter: { label: 'Concepto', get: r => r.concepto },
+        cols: [
+          { k: 'exp', label: 'Expediente', render: r => `<span class="code">${r.exp}</span>` }, { k: 'trab', label: 'Trabajador' }, { k: 'concepto', label: 'Concepto' },
+          { k: 'pct', label: '% ret.', r: true, render: r => r.pct + '%' }, { k: 'monto', label: 'Monto mes', r: true, render: r => U.money(r.monto) },
+          { k: 'tope', label: 'Tope legal', nosort: true, render: r => { const t = r.concepto.startsWith('Pensión') ? 60 : 33.3; return r.pct <= t ? U.tag('✓ dentro del tope (' + t + '%)', 't-green') : U.tag('excede el tope', 't-red'); } },
+          { k: 'benef', label: 'Depósito a', cls: 'mini' }, { k: 'estado', label: 'Estado', render: r => U.tag(r.estado || 'Vigente', r.estado === 'Levantado' ? 't-gray' : 't-green') }
+        ],
+        rowCls: r => r.estado === 'Levantado' ? 'row-void' : '',
+        foot: rs => `<tr><td colspan="4" class="r"><b>Retención mensual vigente</b></td><td class="r num"><b>${U.money(rs.filter(r => r.estado !== 'Levantado').reduce((s, r) => s + r.monto, 0))}</b></td><td colspan="4"></td></tr>` });
       document.getElementById('j-new').addEventListener('click', () => {
         U.bigForm({
           title: 'Registrar mandato judicial', icon: 'fa-gavel', size: '',

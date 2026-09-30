@@ -41,7 +41,10 @@ window.SIGA = (function () {
     'req.aprobar.alto': ['dga'],
     'cp.pagar': ['tesorero', 'dga'],
     'asiento.manual': ['contador'],
-    'cierre': ['contador']
+    'cierre': ['contador'],
+    'dep.confirmar': ['tesorero', 'dga'],
+    'baja.aprobar': ['dga'],
+    'lic.aprobar': ['dga', 'jefppto', 'jefaba', 'tesorero', 'contador']
   };
   const can = acc => (perms[acc] || []).includes(ctx.user.rol);
   // Segregación de funciones: quien registra no aprueba

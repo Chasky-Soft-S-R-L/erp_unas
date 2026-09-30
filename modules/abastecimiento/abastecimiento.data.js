@@ -104,3 +104,57 @@ SIGA.data.abastecimiento = {
     ['PROC-2026-11', 'Adquisición de tractor agrícola con implementos', 'Licitación Pública', 385000, 'IV', 'Programado', 't-gray', 'Servicios de maquinaria agrícola']
   ]
 };
+
+/* ---- Registros históricos del periodo (generados de forma determinista) ---- */
+(function () {
+  const A = SIGA.data.abastecimiento, G = SIGA.gen, r = G.rng(3030);
+  A.proveedores.push(
+    { ruc: '20571123409', rs: 'Seguridad Integral Huallaga SAC', ord: 2, tiempo: 100, calidad: 4.5, pen: 0 },
+    { ruc: '20605541237', rs: 'Consorcio Constructor Tingo María', ord: 1, tiempo: 83, calidad: 4.1, pen: 0 },
+    { ruc: '20603321551', rs: 'Imprenta Selva SAC', ord: 8, tiempo: 75, calidad: 3.9, pen: 1 },
+    { ruc: '20600871124', rs: 'Consultora Ambiental Amazonía EIRL', ord: 3, tiempo: 67, calidad: 3.8, pen: 1 },
+    { ruc: '20609932187', rs: 'AgroVet Selva SAC', ord: 4, tiempo: 88, calidad: 4.0, pen: 0 },
+    { ruc: '20612240093', rs: 'Librería y Papelería Huallaga EIRL', ord: 14, tiempo: 93, calidad: 4.3, pen: 0 },
+    { ruc: '20601877341', rs: 'Combustibles del Oriente SAC', ord: 12, tiempo: 98, calidad: 4.6, pen: 0 },
+    { ruc: '20487005512', rs: 'Laboratorios Químicos Andinos SAC', ord: 5, tiempo: 80, calidad: 4.2, pen: 1 }
+  );
+  const bienes = [['Útiles de escritorio · Facultad de Agronomía', 'Librería y Papelería Huallaga EIRL', '2.3.1 5.1 1'], ['Combustible diésel B5 para maquinaria', 'Combustibles del Oriente SAC', '2.3.1 3.1 1'], ['Reactivos de laboratorio de suelos', 'Laboratorios Químicos Andinos SAC', '2.3.1 8.2 1'], ['Alimento balanceado porcino inicio', 'Distribuidora Agropecuaria del Huallaga SAC', '2.3.1 1.1 3'], ['Repuestos para camioneta institucional', 'Comercial Ferretera Tingo María SRL', '2.3.1 6.1 1'], ['Vacunas y productos veterinarios', 'Veterinaria El Ganadero EIRL', '2.3.1 8.2 1'], ['Víveres para el Comedor Universitario', 'Distribuidora Agropecuaria del Huallaga SAC', '2.3.1 1.1 1'], ['Tóner y consumibles de impresión', 'Importaciones Tecnológicas del Perú SAC', '2.3.1 5.1 2']];
+  const servicios = [['Mantenimiento de grupo electrógeno', 'Comercial Ferretera Tingo María SRL', '2.3.2 4.1 1', 'Otros'], ['Impresión de formatos institucionales', 'Imprenta Selva SAC', '2.3.2 2.4 4', 'Otros'], ['Estudio de impacto ambiental · planta de alimentos', 'Consultora Ambiental Amazonía EIRL', '2.3.2 7.2 1', 'SIGA'], ['Soporte del sistema de biblioteca', 'Servicios Informáticos Selva EIRL', '2.3.2 7.11 99', 'SIGA']];
+  const est = [['Atendida', 't-green'], ['Atendida', 't-green'], ['Atendida', 't-green'], ['Pendiente de entrega', 't-amber'], ['Atendida', 't-green'], ['Emitida', 't-blue'], ['Atendida', 't-green'], ['Anulada', 't-red']];
+  const certs = SIGA.data.presupuesto.certificaciones.filter(c => /Pagado|Girado|Devengado|Comprometido/.test(c.fase)).map(c => c.num);
+  for (let i = 0; i < 18; i++) {
+    const os = i % 4 === 3, b = os ? G.pick(r, servicios) : G.pick(r, bienes), e = G.pick(r, est), dia = 211 + Math.floor(i / 2);
+    const plazo = os ? G.pick(r, [15, 30, 45]) : G.pick(r, [3, 5, 7, 10]), f = G.fecha(r, dia, dia);
+    const [dd, mm] = f.split('/').map(Number), fe = new Date(2026, mm - 1, dd + plazo);
+    A.ordenes.push({ doc: (os ? 'O/S ' + G.pad(297 - i) : 'O/C ' + G.pad(497 - i)), fecha: f, prov: b[1], ref: b[0], cert: G.pick(r, certs), part: b[2], imp: G.amt(r, 900, os ? 16000 : 9500, 10), plazo, entrega: String(fe.getDate()).padStart(2, '0') + '/' + String(fe.getMonth() + 1).padStart(2, '0') + '/2026', estado: e[0], cls: e[1], variante: os ? b[3] : undefined, anulado: e[0] === 'Anulada' || undefined, motivo: e[0] === 'Anulada' ? 'Proveedor no aceptó la orden' : undefined });
+  }
+  const ccs = ['Facultad de Agronomía', 'Facultad de Zootecnia', 'Comedor Universitario', 'Lab. Análisis de Suelos', 'Vicerrectorado Académico', 'Granja Zootecnia', 'Planta de Lácteos', 'DGA — Jefatura'];
+  const descs = ['Materiales de laboratorio para prácticas', 'Mantenimiento de equipos de cómputo', 'Insumos para la planta de lácteos', 'Uniformes para personal de campo', 'Mobiliario para aulas', 'Servicio de fumigación de ambientes', 'Semillas certificadas para campaña', 'Combustible para maquinaria agrícola', 'Artículos de limpieza', 'Equipos de protección personal'];
+  for (let i = 0; i < 12; i++) {
+    const e = G.pick(r, ['Atendido', 'Atendido', 'Aprobado', 'Atendido', 'Observado', 'Aprobado']);
+    A.requerimientos.push({ num: 'REQ 2026-' + G.pad(926 - i * 3, 4), fecha: G.fecha(r, 214 + Math.floor((11 - i) / 2), 214 + Math.floor((11 - i) / 2)), cc: G.pick(r, ccs), desc: G.pick(r, descs), monto: G.amt(r, 800, 26000, 10), estado: e, user: G.pick(r, ['J. Paredes', 'P. Huamán']), aprob: 'A. Torres', saldo: true, obs: e === 'Observado' ? 'Adjuntar términos de referencia firmados' : undefined });
+  }
+  A.encargos.push(
+    { num: 'ENC-2026-026', resp: 'Dr. H. Flores', resol: 'R.D. N.º 090-2026-DGA', act: 'Visita técnica a productores de cacao', monto: 2200, entrega: '20/06/2026', vence: '05/07/2026', rendido: 2200, estado: 'Rendido', dias: 0 },
+    { num: 'ENC-2026-024', resp: 'Mg. P. Vela', resol: 'R.D. N.º 084-2026-DGA', act: 'Evento de aniversario de la Facultad', monto: 4800, entrega: '02/06/2026', vence: '17/06/2026', rendido: 4800, estado: 'Rendido', dias: 0 },
+    { num: 'ENC-2026-021', resp: 'Lic. S. Rojas', resol: 'R.D. N.º 071-2026-DGA', act: 'Campaña de salud estudiantil', monto: 1500, entrega: '15/05/2026', vence: '30/05/2026', rendido: 1500, estado: 'Rendido', dias: 0 }
+  );
+  A.comisiones.push(
+    { num: 'VIA-2026-0214', com: 'Dr. J. Arévalo', cargo: 'Docente principal o asociado', dest: 'Huánuco', dias: 2, viat: 640, pasaje: 70, estado: 'Rendido', vence: '28/07/2026' },
+    { num: 'VIA-2026-0209', com: 'E. Mendoza', cargo: 'Decano / Director General', dest: 'Lima', dias: 3, viat: 1020, pasaje: 1180, estado: 'Rendido', vence: '20/07/2026' },
+    { num: 'VIA-2026-0202', com: 'Ing. L. Castañeda', cargo: 'Docente auxiliar / Profesional administrativo', dest: 'Pucallpa', dias: 4, viat: 1120, pasaje: 160, estado: 'Rendido', vence: '12/07/2026' },
+    { num: 'VIA-2026-0198', com: 'Rector', cargo: 'Rector / Vicerrector', dest: 'Lima', dias: 2, viat: 760, pasaje: 1240, estado: 'Rendido', vence: '05/07/2026' }
+  );
+  A.contratos.push(
+    { num: 'CONT-022', obj: 'Servicio de limpieza de ambientes', con: 'Servicios Generales Rupa Rupa SAC', monto: 312000, inicio: '01/02/2026', plazo: 330, garantia: 'Carta fianza S/ 31,200.00 · vence 31/01/2027', adendas: 0, avance: 58, estado: 'En ejecución' },
+    { num: 'CONT-018', obj: 'Suministro de combustible', con: 'Combustibles del Oriente SAC', monto: 186000, inicio: '15/01/2026', plazo: 350, garantia: 'Retención del 10% (MYPE)', adendas: 1, avance: 64, estado: 'En ejecución' },
+    { num: 'CONT-011', obj: 'Adquisición de equipos de laboratorio', con: 'Laboratorios Químicos Andinos SAC', monto: 468500, inicio: '10/05/2026', plazo: 60, garantia: 'Carta fianza S/ 46,850.00 · liberada', adendas: 0, avance: 100, estado: 'Culminado' }
+  );
+  A.pac.push(
+    ['PROC-2026-02', 'Servicio de limpieza de ambientes', 'Concurso Público', 312000, 'I', 'Contrato suscrito', 't-green', 'DGA — Jefatura'],
+    ['PROC-2026-03', 'Suministro de combustible', 'Adjudicación Simplificada', 186000, 'I', 'Contrato suscrito', 't-green', 'Servicios de maquinaria agrícola'],
+    ['PROC-2026-05', 'Adquisición de mobiliario para aulas', 'Adjudicación Simplificada', 142000, 'III', 'Integración de bases', 't-blue', 'Vicerrectorado Académico'],
+    ['PROC-2026-06', 'Servicio de seguridad y vigilancia 2027', 'Concurso Público', 720000, 'IV', 'Actos preparatorios', 't-gray', 'DGA — Jefatura'],
+    ['PROC-2026-08', 'Adquisición de reactivos de laboratorio', 'Subasta Inversa Electrónica', 88000, 'III', 'Convocado', 't-amber', 'Lab. Análisis de Suelos']
+  );
+})();

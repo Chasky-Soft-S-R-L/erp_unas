@@ -398,7 +398,7 @@
       U.bigForm({
         title: 'Nuevo requerimiento del área usuaria', icon: 'fa-clipboard-list',
         sections: [{ title: 'Datos del requerimiento', cols: 3, fields: [
-          { k: 'num', label: 'N°', value: 'REQ 2026-' + (939 + A.requerimientos.filter(x => x.nuevo).length), ro: true, span: 1 },
+          { k: 'num', label: 'N°', value: 'REQ 2026-' + SIGA.ui.pad(939 + A.requerimientos.filter(x => x.nuevo).length, 4), ro: true, span: 1 },
           { k: 'fecha', label: 'Fecha', type: 'date', value: SIGA.ctx.hoyISO, span: 1 },
           { k: 'tipo', label: 'Tipo', type: 'select', options: ['Bien', 'Servicio', 'Obra'], span: 1 },
           { k: 'esp', label: 'Específica que lo financia (verificación automática de saldo)', type: 'select', options: opts, value: opts.find(o => o.startsWith('M03')), span: 3 },
