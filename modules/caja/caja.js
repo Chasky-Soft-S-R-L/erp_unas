@@ -7,7 +7,8 @@
 (function () {
   const K = SIGA.data.caja;
   // Los recibos vinculados a un comprobante toman su importe del propio CPE (un solo dato)
-  K.ingresos.forEach(r => { if (r.total == null) { const c = SIGA.data.ventas.comprobantes.find(x => x.doc === r.comprob); r.total = c ? c.total : 0; } });
+  K.ingresos.forEach(r => { if (r.total == null) { const c = SIGA.data.ventas.comprobantes.find(x => x.doc === r.comprob); r.total = c ? (r.cobranza ? c.cobrado || 0 : c.total) : 0; } });
+  K.ingresos = K.ingresos.filter(r => r.total > 0);
   const efectivo = () => K.ingresos.filter(r => r.medio === 'Efectivo' && !r.depositado).reduce((s, r) => s + r.total, 0);
   const clasifDe = u => /Laboratorio|maquinaria/.test(u) ? '1.3.3 9.1' : /Planta/.test(u) ? '1.3.1 3.1' : '1.3.1 1.1';
 
@@ -17,6 +18,24 @@
       K.ingresos.unshift(r);
       return r;
     }
+  };
+
+  const dtbl = (head, rows) => `<table class="doc-tbl"><thead><tr>${head.map(h => `<th class="${h[1] ? 'r' : ''}">${h[0]}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${r.map((c, i) => `<td class="${head[i][1] ? 'r' : ''}">${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+  const recRec = SIGA.recs.recibo = {
+    mod: 'Caja', tipo: 'Recibo de ingreso', office: 'Oficina de Tesorería · Caja RDR', key: r => r.num, title: r => 'Recibo ' + r.num + ' · ' + r.concepto, cls: false,
+    fields: r => { const U = SIGA.ui; return [['Recibo', `<span class="code">${r.num}</span>`], ['Fecha', r.fecha], ['Concepto', U.esc(r.concepto), 1], ['Clasificador de ingreso', r.clasif], ['Unidad productiva', r.unidad], ['Pagador', U.esc(r.pagador)], ['Medio', r.medio], ['Comprobante', r.comprob || '—'], ['Monto', `<b>${U.money(r.total)}</b>`], ['Situación', r.anulado ? 'Anulado' : r.depositado ? 'Depositado' : 'En caja']]; },
+    body: r => `<div class="mf-note">${SIGA.ui.montoLetras(r.total)}</div>`,
+    anular: true, anularLabel: 'Anular recibo', canAnular: r => !r.depositado && !r.comprob,
+    onAnular: r => SIGA.asiento('Anulación de recibo ' + r.num, [[r.clasif.startsWith('1.3.1') ? '4301' : '4302', r.total, 0], ['1101', 0, r.total]], 'Caja'),
+    extra: r => r.comprob ? [{ icon: 'fa-receipt', label: 'Ver comprobante electrónico', fn: x => { const c = SIGA.data.ventas.comprobantes.find(k => k.doc === x.comprob); if (c) SIGA.ui.rec(SIGA.recs.cpe).ver(c); } }] : [],
+    print: r => { const U = SIGA.ui; return { tipo: 'Recibo de ingreso', num: r.num, fecha: r.fecha, pairs: [['Recibí de', U.esc(r.pagador), 1], ['Concepto', U.esc(r.concepto), 1], ['Clasificador', r.clasif], ['Unidad productiva', r.unidad], ['Medio de pago', r.medio], ['Comprobante', r.comprob || '—']], body: dtbl([['Detalle'], ['Importe S/', 1]], [[U.esc(r.concepto), '<b>' + U.money(r.total, '') + '</b>']]) + `<p class="mini">${U.montoLetras(r.total)}</p>`, firmas: [['Cajero', SIGA.ctx.user.nombre], ['Tesorería', 'L. Vargas'], ['Pagador', U.esc(r.pagador)]] }; }
+  };
+  const depRec = {
+    mod: 'Caja', tipo: 'Voucher de depósito', office: 'Oficina de Tesorería', key: d => d.num, title: d => 'Depósito ' + d.num, cls: false,
+    fields: d => { const U = SIGA.ui; return [['Depósito', `<span class="code">${d.num}</span>`], ['Fecha', d.fecha], ['Cuenta', d.cta], ['Monto', `<b>${U.money(d.monto)}</b>`], ['Estado', U.tag(d.estado, d.estado === 'Confirmado' ? 't-green' : 't-amber')], ['Efecto presupuestal', d.nota, 1]]; },
+    body: d => SIGA.ui.timeline([{ t: 'Depósito registrado en caja', sub: d.fecha, st: 'done' }, { t: 'Confirmación con el extracto (Tesorería)', st: d.estado === 'Confirmado' ? 'done' : 'cur' }, { t: 'Ampliación automática de la fuente 09', sub: d.estado === 'Confirmado' ? d.nota : '', st: d.estado === 'Confirmado' ? 'done' : '' }]),
+    extra: d => d.estado !== 'Confirmado' ? [{ icon: 'fa-circle-check', label: 'Confirmar abono (Tesorería)', fn: x => SIGA.modules.caja.confirmar(x) }] : [],
+    print: d => ({ tipo: 'Voucher de depósito', num: d.num, pairs: [['Cuenta', d.cta], ['Fecha', d.fecha], ['Monto', SIGA.ui.money(d.monto)], ['Estado', d.estado]] })
   };
 
   SIGA.registerModule('caja', {
@@ -54,13 +73,19 @@
     },
     paintIng() {
       const U = SIGA.ui;
-      document.getElementById('cj-t').innerHTML = U.table([
-        { k: 'num', label: 'Recibo', render: r => `<span class="code">${r.num}</span>` }, { k: 'fecha', label: 'Fecha', cls: 'num' },
-        { k: 'concepto', label: 'Concepto', render: r => r.concepto + `<div class="mini">${r.pagador}${r.comprob ? ' · CPE ' + r.comprob : ''}</div>` },
+      document.getElementById('cj-t').innerHTML = U.grid({ id: 'caj-ing', title: 'recibos', export: 'recibos_ingreso_rdr', rows: K.ingresos, record: recRec, pageSize: 12,
+        filter: { label: 'Unidad', get: r => r.unidad },
+        cols: [
+        { k: 'num', label: 'Recibo', render: r => `<span class="code">${r.num}</span>` }, { k: 'fecha', label: 'Fecha', cls: 'num', sv: r => r.fecha.slice(3, 5) + r.fecha.slice(0, 2) + r.num },
+        { k: 'concepto', label: 'Concepto', render: r => U.esc(r.concepto) + `<div class="mini">${U.esc(r.pagador)}${r.comprob ? ' · CPE ' + r.comprob : ''}</div>`, csv: r => r.concepto },
         { k: 'clasif', label: 'Clasificador', render: r => `<span class="code">${r.clasif}</span>` }, { k: 'unidad', label: 'Unidad productiva', cls: 'mini' },
         { k: 'medio', label: 'Medio', render: r => U.tag(r.medio, r.medio === 'Efectivo' ? 't-gray' : 't-blue') + (r.medio === 'Efectivo' ? `<div class="mini">${r.depositado ? 'depositado' : 'en caja'}</div>` : '') },
-        { k: 'total', label: 'Monto', r: true, render: r => U.money(r.total) }
-      ], K.ingresos, { rowCls: r => r.nuevo ? 'row-new' : '', actions: [{ icon: 'fa-print', title: 'Imprimir recibo', fn: r => U.toast('Recibo ' + r.num + ' enviado a impresión') }] });
+        { k: 'total', label: 'Monto', r: true, render: r => r.anulado ? `<s>${U.money(r.total)}</s>` : U.money(r.total) }
+      ], rowCls: r => (r.nuevo ? 'row-new' : '') + (r.anulado ? ' row-void' : ''),
+        actions: [{ icon: 'fa-print', title: 'Imprimir recibo', fn: r => U.rec(recRec).imprimir(r) }],
+        tools: [{ icon: 'fa-plus', label: 'Registrar ingreso', primary: true, fn: () => this.nuevo() }],
+        bulk: [{ icon: 'fa-print', label: 'Imprimir recibos', fn: rs => U.preview('Recibos · ' + rs.length, rs.map(r => U.doc(Object.assign({ office: recRec.office }, recRec.print(r)))).join('<div class="pg-break"></div>'), { file: 'recibos_lote' }) }],
+        foot: rs => `<tr><td colspan="6" class="r"><b>Total recaudado (${rs.filter(r => !r.anulado).length})</b></td><td class="r num"><b>${U.money(rs.filter(r => !r.anulado).reduce((s, r) => s + r.total, 0))}</b></td><td></td></tr>` });
     },
     paintArq() {
       const U = SIGA.ui, sisR = efectivo() + K.fondoSencillo, sis = Math.floor(sisR * 10 + 1e-6) / 10, red = sisR - sis;
@@ -75,14 +100,20 @@
       const host = document.getElementById('cj-p-arq');
       const calc = () => { let t = 0; host.querySelectorAll('[data-d]').forEach(i => { const v = (+i.value || 0) * (+i.dataset.d); t += v; host.querySelector(`[data-s="${i.dataset.d}"]`).textContent = U.money(v, ''); }); t = Math.round(t * 100) / 100; host.querySelector('#aq-c').textContent = U.money(t); const d = t - sis; host.querySelector('#aq-d').textContent = Math.abs(d) < 0.005 ? 'S/ 0.00 · cuadrado' : (d > 0 ? 'Sobrante ' : 'Faltante ') + U.money(Math.abs(d)); return d; };
       host.querySelectorAll('[data-d]').forEach(i => i.addEventListener('input', calc)); calc();
-      host.querySelector('#aq-go').addEventListener('click', () => { const d = calc(); SIGA.log('Caja', 'Arqueo de caja', SIGA.ctx.hoy, 'Sistema ' + U.money(sis), Math.abs(d) < 0.005 ? 'Cuadrado' : 'Diferencia ' + U.money(d)); U.toast(Math.abs(d) < 0.005 ? 'Arqueo cuadrado · acta firmada digitalmente' : 'Arqueo con diferencia de ' + U.money(d) + ' · se notifica a Tesorería', Math.abs(d) < 0.005 ? 'ok' : 'err'); });
+      host.querySelector('#aq-go').addEventListener('click', () => { const d = calc(); SIGA.log('Caja', 'Arqueo de caja', SIGA.ctx.hoy, 'Sistema ' + U.money(sis), Math.abs(d) < 0.005 ? 'Cuadrado' : 'Diferencia ' + U.money(d)); U.toast(Math.abs(d) < 0.005 ? 'Arqueo cuadrado · acta firmada digitalmente' : 'Arqueo con diferencia de ' + U.money(d) + ' · se notifica a Tesorería', Math.abs(d) < 0.005 ? 'ok' : 'err');
+        const rows = [...host.querySelectorAll('[data-d]')].filter(i => +i.value).map(i => [(+i.dataset.d >= 10 ? 'Billete' : 'Moneda') + ' S/ ' + (+i.dataset.d).toFixed(2), i.value, U.money(+i.value * +i.dataset.d, '')]);
+        U.preview('Acta de arqueo de caja · ' + SIGA.ctx.hoy, U.doc({ tipo: 'Acta de arqueo de caja', num: 'ARQ-' + SIGA.ctx.hoyISO.replace(/-/g, ''), office: 'Oficina de Tesorería · Caja RDR', pairs: [['Saldo según sistema', U.money(sis)], ['Conteo físico', U.money(sis + d)], ['Diferencia', Math.abs(d) < 0.005 ? 'Cuadrado' : U.money(d)], ['Redondeo a favor del consumidor', U.money(red)]], body: dtbl([['Denominación'], ['Cantidad', 1], ['Importe', 1]], rows), firmas: [['Cajero', SIGA.ctx.user.nombre], ['Tesorero', 'L. Vargas'], ['Veedor OCI', 'Auditor']] }), { file: 'acta_arqueo_' + SIGA.ctx.hoyISO }); });
     },
     paintDep() {
       const U = SIGA.ui;
-      document.getElementById('cj-dt').innerHTML = U.table([
-        { k: 'num', label: 'Depósito', render: r => `<span class="code">${r.num}</span>` }, { k: 'fecha', label: 'Fecha' }, { k: 'cta', label: 'Cuenta' },
+      document.getElementById('cj-dt').innerHTML = U.grid({ id: 'caj-dep', title: 'depósitos', export: 'depositos_rdr', rows: K.depositos, record: depRec, search: false,
+        cols: [
+        { k: 'num', label: 'Depósito', render: r => `<span class="code">${r.num}</span>` }, { k: 'fecha', label: 'Fecha', sv: r => r.fecha.slice(3, 5) + r.fecha.slice(0, 2) }, { k: 'cta', label: 'Cuenta' },
         { k: 'monto', label: 'Monto', r: true, render: r => U.money(r.monto) }, { k: 'estado', label: 'Estado', render: r => U.tag(r.estado, r.estado === 'Confirmado' ? 't-green' : 't-amber') }, { k: 'nota', label: 'Efecto presupuestal', cls: 'mini' }
-      ], K.depositos, { rowCls: r => r.nuevo ? 'row-new' : '', actions: [{ icon: 'fa-circle-check', title: 'Confirmar abono (Tesorería)', show: r => r.estado !== 'Confirmado', fn: d => this.confirmar(d) }] });
+      ], rowCls: r => r.nuevo ? 'row-new' : '',
+        actions: [{ icon: 'fa-circle-check', title: 'Confirmar abono (Tesorería)', show: r => r.estado !== 'Confirmado', fn: d => this.confirmar(d) }],
+        tools: [{ icon: 'fa-building-columns', label: 'Depositar efectivo', primary: true, fn: () => this.depositar() }],
+        foot: rs => `<tr><td colspan="3" class="r"><b>Total depositado</b></td><td class="r num"><b>${U.money(rs.reduce((s, d) => s + d.monto, 0))}</b></td><td colspan="3"></td></tr>` });
     },
     paintUni() {
       const U = SIGA.ui, P = SIGA.data.produccion.unidades.filter(u => u.ing).slice().sort((a, b) => b.ing - a.ing);
@@ -102,7 +133,8 @@
     },
     confirmar(d) {
       const U = SIGA.ui;
-      d.estado = 'Confirmado';
+      if (!SIGA.sod(null, 'dep.confirmar')) return;
+      U.closeModal(); d.estado = 'Confirmado';
       SIGA.data.tesoreria.bancos[1].libros += d.monto;
       const n = SIGA.ppto.ampliarRDR(d.monto, d.num);
       d.nota = n + ' · fuente 09 ampliada en ' + U.money(d.monto);

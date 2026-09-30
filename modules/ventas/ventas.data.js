@@ -48,3 +48,36 @@ SIGA.data.ventas = {
   ],
   mensual: { labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago'], ventas: [212, 226, 241, 248, 236, 259, 268, 251] }
 };
+
+/* Ampliación: comprobantes de agosto (01–15), clientes, notas y guías coherentes */
+(function () {
+  const V = SIGA.data.ventas, G = SIGA.gen, r = G.rng(8080);
+  V.clientes.push(
+    { doc: 'RUC 20542219871', nom: 'Minimarket La Colmena SAC', tipo: 'Mayorista (volumen)', credito: 8000, dir: 'Jr. Tito Jaime 318, Tingo María', correo: 'compras@lacolmena.pe', valida: 'SUNAT · activo y habido' },
+    { doc: 'RUC 20600457712', nom: 'Hotel Madera Verde EIRL', tipo: 'Público', credito: 3000, dir: 'Av. Enrique Pimentel 190, Tingo María', correo: 'administracion@maderaverde.pe', valida: 'SUNAT · activo y habido' },
+    { doc: 'RUC 20489900112', nom: 'Municipalidad Provincial de Leoncio Prado', tipo: 'Institucional / convenio', credito: 25000, dir: 'Jr. Alameda Perú 525, Tingo María', correo: 'logistica@munitingomaria.gob.pe', valida: 'SUNAT · activo y habido' },
+    { doc: 'RUC 20573311045', nom: 'Panificadora San Martín SRL', tipo: 'Mayorista (volumen)', credito: 6000, dir: 'Av. Raymondi 455, Tingo María', correo: 'pedidos@panisanmartin.pe', valida: 'SUNAT · activo y habido' }
+  );
+  const B = [['CER-CAR', 20, 90], ['POL-BEN', 15, 60], ['HUE-UNI', 120, 600], ['LEC-FRE', 40, 160], ['YOG-FRU', 12, 48], ['QUE-FRE', 5, 20], ['MAN-BLA', 6, 24], ['CAF-TOS', 4, 30], ['CHO-070', 10, 60], ['PLA-RAC', 6, 30], ['CUY-BEN', 4, 16]];
+  const F = [['Cooperativa Agraria del Alto Huallaga', 'RUC 20600123457', [['CAF-TOS', 60, 180], ['ARR-PIL', 6, 20]]], ['Minimarket La Colmena SAC', 'RUC 20542219871', [['YOG-FRU', 48, 144], ['QUE-FRE', 20, 60], ['HUE-UNI', 600, 1800]]], ['Hotel Madera Verde EIRL', 'RUC 20600457712', [['CAF-TOS', 10, 30], ['CHO-070', 40, 120], ['QUE-FRE', 8, 20]]], ['Municipalidad Provincial de Leoncio Prado', 'RUC 20489900112', [['PLN-FOR', 800, 2500], ['ALQ-TRA', 6, 20]]], ['Panificadora San Martín SRL', 'RUC 20573311045', [['HUE-UNI', 900, 2400], ['LEC-FRE', 100, 300], ['MAN-BLA', 20, 60]]], ['Agroindustrias del Huallaga SAC', 'RUC 20531042911', [['MAI-AMA', 10, 40], ['ARR-PIL', 8, 24]]], ['Asociación de Productores de Castillo Grande', 'RUC 20600888121', [['ANA-SUE', 4, 16]]]];
+  const pick = (a, n) => { const s = a.slice(), o = []; while (o.length < n && s.length) o.push(s.splice(G.int(r, 0, s.length - 1), 1)[0]); return o; };
+  const unidadDe = cod => (V.productos.find(p => p.cod === cod) || {}).unidad;
+  let bnum = 4811, fnum = 209, dia = 227;
+  const nf = () => { while (V.comprobantes.some(c => c.doc === 'F001-' + G.pad(fnum))) fnum--; return fnum--; };
+  for (let i = 0; i < 22; i++) {
+    const fact = i % 3 === 1;
+    if (fact) {
+      const f = F[i % F.length], its = pick(f[2], G.int(r, 1, f[2].length)).map(x => [x[0], G.amt(r, x[1], x[2], x[1] >= 100 ? 50 : 1)]);
+      const cred = V.clientes.find(c => c.nom === f[0]).credito > 0 && i % 2 === 0;
+      const fecha = G.fecha(r, dia, dia), [d, m] = fecha.split('/').map(Number), ve = new Date(2026, m - 1, d + 30);
+      V.comprobantes.push({ doc: 'F001-' + G.pad(nf()), tipo: '01', fecha, cli: f[0], docCli: f[1], op: cred ? 'Crédito' : 'Contado', venc: cred ? G.pad(ve.getDate(), 2) + '/' + G.pad(ve.getMonth() + 1, 2) + '/2026' : undefined, items: its, sunat: 'Aceptado', unidad: unidadDe(its[0][0]), cobrado: cred ? null : undefined, _cobro: cred ? G.pick(r, [0, 0.5, 1, 1]) : undefined });
+    } else {
+      const its = pick(B, G.int(r, 1, 3)).map(x => [x[0], G.amt(r, x[1], x[2], x[1] >= 100 ? 10 : 1)]);
+      V.comprobantes.push({ doc: 'B001-' + G.pad(bnum--), tipo: '03', fecha: G.fecha(r, dia, dia), cli: G.pick(r, ['Consumidor final', 'Consumidor final', 'Productor agrario', 'Comedor popular de Castillo Grande', 'Estudiante UNAS']), docCli: 'DNI ' + G.pick(r, ['4', '7', '1']) + G.int(r, 0, 9) + '•••' + G.pad(G.int(r, 0, 999), 3), op: 'Contado', items: its, sunat: 'Aceptado', unidad: unidadDe(its[0][0]) });
+      if (G.int(r, 0, 2) === 0) bnum -= G.int(r, 1, 3);
+    }
+    if (i % 2 === 1) dia--;
+  }
+  V.comprobantes.sort((a, b) => { const k = c => c.fecha.slice(3, 5) + c.fecha.slice(0, 2); return k(b) < k(a) ? -1 : k(b) > k(a) ? 1 : b.doc.localeCompare(a.doc); });
+  V.notas.push({ doc: 'BC01-000009', fecha: '06/08/2026', ref: 'B001-004795', cli: 'Consumidor final', motivo: 'Error en la descripción del producto', total: 36, sunat: 'Aceptado' }, { doc: 'FC01-000013', fecha: '02/08/2026', ref: 'F001-000191', cli: 'Minimarket La Colmena SAC', motivo: 'Descuento por volumen posterior a la venta', total: 214.5, sunat: 'Aceptado' });
+})();

@@ -81,3 +81,25 @@ SIGA.data.pecuario = {
     causas: [['Neumonía en terneros', 1], ['Otras causas', 0]]
   }
 };
+
+/* Ampliación: historial de eventos de agosto, fichas y calendario sanitario ya ejecutado por especie */
+(function () {
+  const D = SIGA.data.pecuario;
+  const add = (e, ev, an, sa) => { e.eventos.push(...ev); e.animales.push(...an); e.sanidad.push(...sa); };
+  add(D.porcino,
+    [['13/08', 'Pesaje', 'Engorde E-121', '24', '66 kg prom. · GDP 648 g/día'], ['12/08', 'Saca', 'Engorde E-118', '12', 'beneficio · 97 kg prom.'], ['10/08', 'Parto', 'Marrana M-017', '11', '10 vivos, 1 muerto'], ['09/08', 'Vacunación', 'Recría L-229 (12)', '12', 'Vacuna PPC'], ['07/08', 'Inseminación', 'Marrana M-023', '1', 'semen Duroc · lote D-88'], ['05/08', 'Destete', 'Lote L-229', '12', '7.0 kg prom.'], ['03/08', 'Mortalidad', 'Lactancia M-011', '1', 'aplastamiento'], ['01/08', 'Cambio de etapa', 'Recría L-226', '11', 'pasan a engorde · 25 kg']],
+    [['M-017', 'Reproductora', 'Landrace × Large White', '08/09/2023', '3 partos · 10.5 vivos/parto', 'Parto 10/08 · 10 vivos', 'Destete estimado 31/08', 'Lactancia'], ['M-023', 'Reproductora', 'Large White', '14/02/2024', '1 parto · 9 vivos', 'Inseminación 07/08', 'Repetición de celo 28/08', 'Servida'], ['L-229', 'Lote recría', 'Híbrido comercial', '12/07/2026', '12 lechones · 11.4 kg prom.', 'Vacuna PPC 09/08', 'Cambio a engorde 16/09', 'Recría'], ['E-118', 'Lote engorde', 'Híbrido comercial', '02/03/2026', '6 cabezas · 99 kg prom.', 'Saca 12/08', 'Saca final 19/08', 'Engorde']],
+    [['09/08/2026', 'Vacuna peste porcina clásica', 'Recría L-229 (12)', 'Aplicada'], ['04/08/2026', 'Hierro dextrano · día 3', 'Lechones de M-017 (10)', 'Aplicada'], ['01/08/2026', 'Desparasitación · ivermectina', 'Reproductores (31)', 'Aplicada'], ['01/09/2026', 'Vacuna mycoplasma · refuerzo', 'Engorde E-121 (24)', 'Programada']]);
+  add(D.aves,
+    [['14/08', 'Pesaje', 'Engorde G2-09', '594', '0.92 kg prom.'], ['12/08', 'Beneficio', 'Engorde G2-07', '640', '2.48 kg prom.'], ['11/08', 'Mortalidad', 'Engorde G2-08', '6', 'estrés por calor'], ['09/08', 'Vacunación', 'Engorde G2-09 (600)', '600', 'Newcastle + bronquitis'], ['06/08', 'Recolección', 'Ponedoras', '352', 'huevos del día · 84%'], ['03/08', 'Descarte', 'Ponedoras P-01', '8', 'baja postura']],
+    [['G2-07', 'Lote engorde', 'Cobb 500', '19/06/2026', '640 aves · 2.48 kg', 'Beneficio 12/08', '—', 'Cerrado'], ['P-02', 'Lote ponedoras', 'Hy-Line Brown', '03/05/2026', '380 aves · inicio de postura', 'Traslado a jaulas 01/08', 'Vacuna EDS 30/08', 'Pre-postura']],
+    [['09/08/2026', 'Vacuna Newcastle + bronquitis', 'Engorde G2-09 (600)', 'Aplicada'], ['02/08/2026', 'Vacuna Gumboro · día 14', 'Engorde G2-09 (600)', 'Aplicada'], ['30/08/2026', 'Vacuna síndrome de baja postura (EDS)', 'Ponedoras P-02 (380)', 'Programada']]);
+  add(D.cuyes,
+    [['13/08', 'Saca', 'Engorde E-11', '30', 'beneficio · 880 g'], ['11/08', 'Nacimiento', 'Poza P-03', '9', '3 partos'], ['09/08', 'Destete', 'Poza P-02', '16', 'pasan a recría'], ['06/08', 'Empadre', 'Poza P-10', '10', '9 hembras + 1 macho'], ['04/08', 'Mortalidad', 'Recría R-04', '3', 'neumonía']],
+    [['P-10', 'Poza de empadre', 'Perú mejorado', '06/08/2026', '9 hembras · 1 macho', 'Empadre 06/08', 'Partos probables 12/10', 'Empadre'], ['R-04', 'Poza de recría', 'Perú mejorado', '20/07/2026', '38 cuyes · 420 g', 'Mortalidad 04/08', 'Paso a engorde 24/08', 'Recría']],
+    [['04/08/2026', 'Tratamiento para neumonía', 'Recría R-04 (38)', 'Aplicada'], ['01/08/2026', 'Desinfección de pozas', 'Todas las pozas', 'Aplicada'], ['05/09/2026', 'Dosificación antiparasitaria', 'Reproductoras (180)', 'Programada']]);
+  add(D.vacunos,
+    [['15/08', 'Ordeño', 'Vacas en producción', '342', 'litros del día'], ['13/08', 'Inseminación', 'Vaquillona VQ-12', '1', 'semen Gyr lechero'], ['11/08', 'Secado', 'Vaca V-03', '1', '60 días antes del parto'], ['08/08', 'Pesaje', 'Terneros', '9', '118 kg prom.'], ['05/08', 'Vacunación', 'Hato completo (58)', '58', 'fiebre aftosa']],
+    [['VQ-12', 'Vaquillona', 'Gyr × Holstein', '10/05/2024', '15 meses · 320 kg', 'Inseminación 13/08', 'Diagnóstico de preñez 12/09', 'Servida'], ['V-03', 'Vaca', 'Brown Swiss', '02/02/2019', '5 partos · 12.4 L/día', 'Secado 11/08', 'Parto probable 10/10', 'Seca']],
+    [['05/08/2026', 'Vacuna contra fiebre aftosa', 'Hato completo (58)', 'Aplicada'], ['01/08/2026', 'Control de garrapatas (baño)', 'Hato completo (58)', 'Aplicada'], ['02/09/2026', 'Vacuna carbunco sintomático', 'Terneros (9)', 'Programada']]);
+})();
