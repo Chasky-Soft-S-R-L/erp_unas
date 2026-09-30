@@ -29,3 +29,23 @@ SIGA.data.integracion = {
     ['Interruptor de circuito', 'Suspender temporalmente los envíos ante fallas sostenidas', 'Evita la saturación ante una indisponibilidad prolongada']
   ]
 };
+
+/* Bandeja histórica de agosto: cada operación registrada en los módulos dejó su mensaje confirmado */
+(function () {
+  const Q = SIGA.data.integracion, G = SIGA.gen, r = G.rng(1111), D = SIGA.data;
+  const idem = (s, t, ref) => (s + '|' + t + '|' + ref).replace(/\s+/g, '').toUpperCase();
+  const ev = [], k = f => f.slice(3, 5) + f.slice(0, 2);
+  const push = (fecha, sistema, tipo, ref, monto) => { if (+fecha.slice(0, 2) > 17 && fecha.slice(3, 5) === '08') return; if (!Q.msgs.some(m => m.idem === idem(sistema, tipo, ref))) ev.push({ fecha: fecha.slice(0, 10), sistema, tipo, ref, monto }); };
+  D.presupuesto.certificaciones.filter(c => !['Pendiente de aprobación', 'Anulada'].includes(c.fase) && c.fecha.slice(3, 5) === '08').forEach(c => push(c.fecha, 'SIAF-SP', 'Certificación', 'CCP ' + c.num, c.monto));
+  D.abastecimiento.ordenes.filter(o => o.estado !== 'Anulada' && o.fecha.slice(3, 5) === '08').forEach(o => push(o.fecha, 'SIAF-SP', 'Compromiso anual', o.doc, o.imp));
+  D.tesoreria.cp.filter(c => c.estado === 'Pagado').forEach(c => { push(c.fecha, 'SIAF-SP', 'Girado', c.doc, c.neto); push(c.fecha, 'SIAF-SP', 'Pagado', c.doc, c.neto); });
+  D.ventas.comprobantes.filter(c => c.sunat === 'Aceptado').forEach(c => push(c.fecha, 'SUNAT', c.tipo === '01' ? 'Factura electrónica' : 'Boleta electrónica', c.doc, 0));
+  ev.push({ fecha: '10/08/2026', sistema: 'Banco', tipo: 'Abono masivo', ref: 'Planilla 276 · Jul 2026', monto: 1142200 }, { fecha: '06/08/2026', sistema: 'Banco', tipo: 'Abono masivo', ref: 'Planilla docentes · Jul 2026', monto: 1551500 }, { fecha: '03/08/2026', sistema: 'SIGA-MEF', tipo: 'Descarga catálogo', ref: 'Catálogo de bienes y servicios 03/08', monto: 0 }, { fecha: '10/08/2026', sistema: 'SIGA-MEF', tipo: 'Descarga catálogo', ref: 'Catálogo de bienes y servicios 10/08', monto: 0 });
+  ev.sort((a, b) => k(b.fecha) < k(a.fecha) ? -1 : k(b.fecha) > k(a.fecha) ? 1 : 0);
+  let id = Math.min(...Q.msgs.map(m => m.id)) - 1, exp = 4597;
+  ev.forEach(e => {
+    const it = G.int(r, 0, 9) === 0 ? 2 : 1;
+    Q.msgs.push({ id: id--, ts: e.fecha + ' ' + G.hora(r) + ':' + G.pad(G.int(r, 0, 59), 2), sistema: e.sistema, tipo: e.tipo, ref: e.ref, monto: e.monto, idem: idem(e.sistema, e.tipo, e.ref), estado: 'Confirmado', intentos: it,
+      resp: (e.sistema === 'SUNAT' ? 'CDR 0 · El comprobante ha sido aceptado' : e.sistema === 'Banco' ? 'Archivo de abono recibido · lote ' + G.pad(213 - G.int(r, 1, 12), 5) : e.sistema === 'SIGA-MEF' ? '18,272 ítems · ' + G.int(r, 3, 20) + ' actualizados' : 'Expediente SIAF 2026-' + G.pad(exp--, 7)) + (it > 1 ? ' · 1 reintento por tiempo de espera' : '') });
+  });
+})();
