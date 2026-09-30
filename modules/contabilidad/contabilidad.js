@@ -24,6 +24,21 @@
   };
   const depMes = () => K.activos.reduce((t, a) => { const [d, m, y] = a[2].split('/').map(Number); const meses = (2026 - y) * 12 + (8 - m); const tot = a[3] * a[4] / 100 / 12; return t + (meses * tot < a[3] && meses >= 0 ? tot : 0); }, 0);
 
+  const dtbl = (head, rows) => `<table class="doc-tbl"><thead><tr>${head.map(h => `<th class="${h[1] ? 'r' : ''}">${h[0]}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${r.map((c, i) => `<td class="${head[i][1] ? 'r' : ''}">${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+  const tot = (a, k) => a.lineas.reduce((s, l) => s + l[k], 0);
+  const asRec = SIGA.recs.asiento = {
+    mod: 'Contabilidad', tipo: 'Comprobante contable (voucher)', office: 'Oficina de Contabilidad', key: a => a.num, title: a => 'Asiento ' + a.num + ' · ' + a.glosa, cls: false, anuladoValor: 'Extornado',
+    fields: a => { const U = SIGA.ui; return [['Asiento', `<span class="code">${a.num}</span>`], ['Fecha', a.fecha + '/2026'], ['Glosa', U.esc(a.glosa), 1], ['Origen', a.auto ? U.tag('automático · ' + a.origen, 't-teal') : U.tag('manual', 't-gray')], ['Registró', a.user], ['Total debe', U.money(tot(a, 'debe'))], ['Total haber', U.money(tot(a, 'haber'))], ['Estado', U.tag(a.estado || 'Contabilizado', a.estado === 'Extornado' ? 't-red' : 't-green')]]; },
+    body: a => { const U = SIGA.ui; return `<div class="lbl-s mt mb">Movimientos</div>` + U.table([{ k: 'cta', label: 'Cuenta', render: l => `<span class="code">${l.cta}</span> ${K.plan[l.cta] || ''}` }, { k: 'debe', label: 'Debe', r: true, render: l => l.debe ? U.money(l.debe, '') : '' }, { k: 'haber', label: 'Haber', r: true, render: l => l.haber ? U.money(l.haber, '') : '' }], a.lineas, { foot: `<tr><td class="r"><b>Totales</b></td><td class="r num"><b>${U.money(tot(a, 'debe'), '')}</b></td><td class="r num"><b>${U.money(tot(a, 'haber'), '')}</b></td></tr>` }); },
+    edit: [{ k: 'glosa', label: 'Glosa' }], canEdit: a => !a.auto,
+    anular: true, anularLabel: 'Extornar asiento', canAnular: a => !a.estado && !/^Extorno/.test(a.glosa),
+    onAnular: a => { const n = SIGA.asiento('Extorno de ' + a.num + ' · ' + a.glosa, a.lineas.map(l => [l.cta, l.haber, l.debe]), 'Contabilidad'); a.extorno = n; },
+    extra: a => [{ icon: 'fa-copy', label: 'Duplicar como asiento manual', menuOnly: true, fn: x => SIGA.modules.contabilidad.nuevoAsiento(x) }],
+    print: a => { const U = SIGA.ui; return { tipo: 'Comprobante contable', num: a.num, fecha: a.fecha + '/2026', pairs: [['Glosa', U.esc(a.glosa), 1], ['Origen', a.origen + (a.auto ? ' (automático)' : ' (manual)')], ['Registró', a.user]],
+      body: dtbl([['Cuenta'], ['Denominación'], ['Debe', 1], ['Haber', 1]], a.lineas.map(l => [l.cta, K.plan[l.cta] || '', l.debe ? U.money(l.debe, '') : '', l.haber ? U.money(l.haber, '') : '']).concat([['', '<b>Totales</b>', '<b>' + U.money(tot(a, 'debe'), '') + '</b>', '<b>' + U.money(tot(a, 'haber'), '') + '</b>']])),
+      firmas: [['Elaboró', a.user], ['Revisó', 'R. Soto · Contador'], ['V.º B.º', 'Dirección General de Administración']] }; }
+  };
+
   SIGA.registerModule('contabilidad', {
     title: 'Contabilidad', icon: 'fa-book', group: 'Registro y control',
     sel: '1101', running: false,
@@ -37,7 +52,7 @@
       <div class="page-head"><div><h1>Contabilidad</h1><p>Registro contable gubernamental · asiento automático · libros como vistas del mismo registro · estados financieros para la DGCP</p></div>
         <div class="row-flex"><button class="btn ghost" id="k-cierre"><i class="fa-solid fa-lock"></i> Cierre de agosto</button><button class="btn" id="k-na"><i class="fa-solid fa-plus"></i> Asiento de ajuste</button></div></div>
       ${U.kpis([
-        { lab: 'Asientos del periodo', val: U.int(1284 + K.asientos.length - 5), sub: autos + ' de ' + K.asientos.length + ' recientes son automáticos' },
+        { lab: 'Asientos del periodo', val: U.int(1284 + K.seq - 4823), sub: autos + ' de ' + K.asientos.length + ' del mes son automáticos' },
         { lab: 'Plan contable', val: U.int(4861), sub: 'cuentas y subcuentas (placta)' },
         { lab: 'Balance', val: Math.abs(td - th) < 0.01 ? 'Cuadrado' : 'Descuadre', sub: 'debe = haber · verificación permanente', color: Math.abs(td - th) < 0.01 ? 'var(--ok)' : 'var(--danger)' },
         { lab: 'Último cierre', val: K.cierres[0][0], sub: 'en ' + K.cierres[0][2] + ' · antes 10 días', chip: '−90%' }
@@ -59,14 +74,28 @@
       this.paintDia(); this.paintMay(); this.paintBal(E); this.paintEF(E); this.paintDin(); this.paintAct(); this.paintConc(); this.paintCie();
     },
     paintDia() {
-      const U = SIGA.ui, rows = [];
-      K.asientos.forEach((a, ai) => a.lineas.forEach((l, i) => rows.push({ a, l, i, ai })));
-      document.getElementById('k-dia').innerHTML = U.table([
-        { k: 'n', label: 'Asiento', render: r => r.i ? '' : `<span class="code">${r.a.num}</span>` }, { k: 'f', label: 'Fecha', render: r => r.i ? '' : r.a.fecha },
-        { k: 'g', label: 'Glosa', render: r => r.i ? '' : r.a.glosa + `<div>${r.a.auto ? U.tag('<i class="fa-solid fa-bolt"></i> automático · ' + r.a.origen, 't-teal') : U.tag('manual · ' + r.a.user, 't-gray')}</div>` },
-        { k: 'c', label: 'Cuenta', render: r => `<span class="code">${r.l.cta}</span> <span class="mini">${K.plan[r.l.cta] || ''}</span>` },
-        { k: 'd', label: 'Debe', r: true, render: r => r.l.debe ? U.money(r.l.debe, '') : '—' }, { k: 'h', label: 'Haber', r: true, render: r => r.l.haber ? U.money(r.l.haber, '') : '—' }
-      ], rows.slice(0, 60), { rowCls: r => r.a.auto && r.ai < K.asientos.length - 5 ? 'row-new' : '' });
+      const U = SIGA.ui;
+      document.getElementById('k-dia').innerHTML = U.grid({
+        id: 'con-dia', title: 'libro diario', export: 'libro_diario_agosto_2026', rows: K.asientos, record: asRec, pageSize: 12,
+        filter: { label: 'Origen', get: a => a.origen },
+        cols: [
+          { k: 'num', label: 'Asiento', render: a => `<span class="code">${a.num}</span>`, sv: a => +a.num.slice(2) },
+          { k: 'fecha', label: 'Fecha', sv: a => a.fecha.slice(3) + a.fecha.slice(0, 2) },
+          { k: 'glosa', label: 'Glosa', render: a => U.esc(a.glosa) + `<div>${a.auto ? U.tag('<i class="fa-solid fa-bolt"></i> automático · ' + a.origen, 't-teal') : U.tag('manual · ' + a.user, 't-gray')}${a.estado ? ' ' + U.tag(a.estado + (a.extorno ? ' · ' + a.extorno : ''), 't-red') : ''}</div>`, csv: a => a.glosa },
+          { k: 'ctas', label: 'Cuentas', nosort: true, render: a => a.lineas.map(l => `<span class="code" title="${K.plan[l.cta] || ''}">${l.cta}${l.debe ? ' D' : ' H'}</span>`).join(' '), csv: a => a.lineas.map(l => l.cta + (l.debe ? ' D ' + l.debe : ' H ' + l.haber)).join(' | ') },
+          { k: 'd', label: 'Debe', r: true, sv: a => tot(a, 'debe'), render: a => U.money(tot(a, 'debe'), '') },
+          { k: 'h', label: 'Haber', r: true, sv: a => tot(a, 'haber'), render: a => U.money(tot(a, 'haber'), '') }
+        ],
+        rowCls: a => (a.estado ? 'row-void' : '') + (a.auto && +a.num.slice(2) > 4823 ? ' row-new' : ''),
+        actions: [{ icon: 'fa-print', title: 'Imprimir comprobante contable', fn: a => U.rec(asRec).imprimir(a) }],
+        tools: [{ icon: 'fa-plus', label: 'Asiento de ajuste', primary: true, fn: () => this.nuevoAsiento() }, { icon: 'fa-file-export', label: 'PLE 5.1 (SUNAT)', fn: () => this.ple() }],
+        bulk: [{ icon: 'fa-print', label: 'Imprimir vouchers', fn: rs => U.preview('Comprobantes contables · ' + rs.length, rs.map(a => U.doc(Object.assign({ office: asRec.office }, asRec.print(a)))).join('<div class="pg-break"></div>'), { file: 'vouchers_contables' }) }],
+        foot: rs => `<tr><td colspan="5" class="r"><b>Totales (${rs.length} asientos)</b></td><td class="r num"><b>${U.money(rs.reduce((s, a) => s + tot(a, 'debe'), 0), '')}</b></td><td class="r num"><b>${U.money(rs.reduce((s, a) => s + tot(a, 'haber'), 0), '')}</b></td><td></td></tr>`
+      });
+    },
+    ple() {
+      const lines = []; K.asientos.slice().reverse().forEach((a, i) => a.lineas.forEach((l, j) => lines.push(['20260800', 'M' + a.num.slice(2), 'M' + String(j + 1).padStart(4, '0'), l.cta, '', '', 'PEN', '', '', '', '', '', '', '2026-08-' + a.fecha.slice(0, 2), '', a.glosa.slice(0, 100).replace(/\|/g, '-'), '', l.debe.toFixed(2), l.haber.toFixed(2), '', '1'].join('|'))));
+      SIGA.ui.download('LE2016174912620260800050100001111.txt', lines.join('\r\n') + '\r\n');
     },
     paintMay() {
       const U = SIGA.ui, host = document.getElementById('k-p-may'), c = this.sel;
@@ -74,18 +103,21 @@
       const mov = []; K.asientos.slice().reverse().forEach(a => a.lineas.filter(l => l.cta === c).forEach(l => { s += l.debe - l.haber; mov.push({ f: a.fecha, n: a.num, g: a.glosa, d: l.debe, h: l.haber, s }); }));
       host.innerHTML = `<div class="card"><h3><span class="dot"></span>Libro mayor <span class="grow">C-06 · mayorización automática</span></h3>
         <div class="toolbar"><div class="fld" style="min-width:320px"><select id="may-sel">${Object.keys(K.plan).map(k => `<option value="${k}" ${k === c ? 'selected' : ''}>${k} · ${K.plan[k]}</option>`).join('')}</select></div><span class="pill">Saldo al 31/07: ${U.money(bs[0] - bs[1])}</span><span class="pill ok"><span class="dot"></span>Saldo actual ${U.money(s)}</span></div><div id="may-t"></div></div>`;
-      document.getElementById('may-t').innerHTML = U.table([{ k: 'f', label: 'Fecha' }, { k: 'n', label: 'Asiento', render: r => `<span class="code">${r.n}</span>` }, { k: 'g', label: 'Glosa' }, { k: 'd', label: 'Debe', r: true, render: r => r.d ? U.money(r.d, '') : '—' }, { k: 'h', label: 'Haber', r: true, render: r => r.h ? U.money(r.h, '') : '—' }, { k: 's', label: 'Saldo', r: true, render: r => `<b>${U.money(r.s, '')}</b>` }], mov, { empty: 'Sin movimientos en el periodo para esta cuenta' });
+      document.getElementById('may-t').innerHTML = U.grid({ id: 'con-may-' + c, title: 'mayor ' + c, export: 'libro_mayor_' + c, rows: mov, pageSize: 15, empty: 'Sin movimientos en el periodo para esta cuenta',
+        cols: [{ k: 'f', label: 'Fecha' }, { k: 'n', label: 'Asiento', render: r => `<span class="code">${r.n}</span>` }, { k: 'g', label: 'Glosa' }, { k: 'd', label: 'Debe', r: true, render: r => r.d ? U.money(r.d, '') : '—' }, { k: 'h', label: 'Haber', r: true, render: r => r.h ? U.money(r.h, '') : '—' }, { k: 's', label: 'Saldo', r: true, render: r => `<b>${U.money(r.s, '')}</b>` }],
+        onRow: r => { const a = K.asientos.find(x => x.num === r.n); if (a) U.rec(asRec).ver(a); },
+        foot: rs => `<tr><td colspan="3" class="r"><b>Movimiento del periodo</b></td><td class="r num"><b>${U.money(rs.reduce((t, r) => t + r.d, 0), '')}</b></td><td class="r num"><b>${U.money(rs.reduce((t, r) => t + r.h, 0), '')}</b></td><td></td></tr>` });
       document.getElementById('may-sel').addEventListener('change', e => { this.sel = e.target.value; this.paintMay(); });
     },
     paintBal(E) {
       const U = SIGA.ui, b = E.b, rows = Object.keys(b).sort().map(c => [c, K.plan[c] || '', b[c][0], b[c][1], b[c][0] - b[c][1]]);
       const td = rows.reduce((s, r) => s + r[2], 0), th = rows.reduce((s, r) => s + r[3], 0);
-      document.getElementById('k-bal').innerHTML = U.table([
+      document.getElementById('k-bal').innerHTML = U.grid({ id: 'con-bal', title: 'balance de comprobación', export: 'balance_comprobacion_' + SIGA.ctx.hoyISO, rows, pageSize: 30, onRow: r => { this.sel = r[0]; this.paintMay(); SIGA.showTab(document.getElementById('mod-root'), 'k', 'may'); }, cols: [
         { k: 0, label: 'Cuenta', render: r => `<span class="code">${r[0]}</span>` }, { k: 1, label: 'Denominación' },
         { k: 2, label: 'Sumas debe', r: true, render: r => U.money(r[2], '') }, { k: 3, label: 'Sumas haber', r: true, render: r => U.money(r[3], '') },
         { k: 4, label: 'Saldo deudor', r: true, render: r => r[4] >= 0 ? `<span class="saldo-pos">${U.money(r[4], '')}</span>` : '' },
-        { k: 5, label: 'Saldo acreedor', r: true, render: r => r[4] < 0 ? `<span class="saldo-neg">${U.money(-r[4], '')}</span>` : '' }
-      ], rows, { foot: `<tr><td></td><td style="font-weight:800">TOTALES</td><td class="r num" style="font-weight:800">${U.money(td, '')}</td><td class="r num" style="font-weight:800">${U.money(th, '')}</td><td colspan="2" class="r">${Math.abs(td - th) < 0.01 ? U.tag('✓ Cuadrado', 't-green') : U.tag('Descuadre ' + U.money(td - th), 't-red')}</td></tr>` });
+        { k: 5, label: 'Saldo acreedor', r: true, sv: r => -r[4], render: r => r[4] < 0 ? `<span class="saldo-neg">${U.money(-r[4], '')}</span>` : '' }
+      ], foot: `<tr><td></td><td style="font-weight:800">TOTALES</td><td class="r num" style="font-weight:800">${U.money(td, '')}</td><td class="r num" style="font-weight:800">${U.money(th, '')}</td><td colspan="2" class="r">${Math.abs(td - th) < 0.01 ? U.tag('✓ Cuadrado', 't-green') : U.tag('Descuadre ' + U.money(td - th), 't-red')}</td></tr>` });
     },
     paintEF(E) {
       const U = SIGA.ui, s = E.s, row = (t, v, c = '') => `<div class="ef-row ${c}"><span>${t}</span><span class="num">${U.money(v, '')}</span></div>`;
@@ -109,11 +141,20 @@
           ${row('Saldo al 01/01/2026 · Hacienda nacional', E.pat)}${row('Resultado del ejercicio', E.res, 'sub')}${row('Patrimonio al ' + SIGA.ctx.hoy, E.pat + E.res, 'tot')}</div>
           <div class="card"><h3><span class="dot"></span>Estado de Flujos de Efectivo <span class="grow">EF-4 · método directo</span></h3>
           ${flu.map(f => row(f[0], f[1], f[1] < 0 ? 'sub' : '')).join('')}${row('Variación neta del efectivo', vari, 'tot')}${row('Saldo inicial de efectivo', s('1101') - vari, 'sub')}${row('Saldo final de efectivo', s('1101'), 'tot')}</div></div>
-        <p class="mini mt">Formatos exigidos por la Dirección General de Contabilidad Pública (Cuenta General de la República) generados del registro, sin armado paralelo. Notas a los estados financieros (C-12) asistidas.</p>`;
+        <div class="row-flex mt"><button class="btn" id="ef-pr"><i class="fa-solid fa-print"></i> Imprimir EF-1 a EF-4</button><button class="btn ghost" id="ef-x"><i class="fa-solid fa-file-excel"></i> Exportar a Excel</button><span class="mini">Formatos exigidos por la Dirección General de Contabilidad Pública (Cuenta General de la República) generados del registro, sin armado paralelo.</span></div>`;
+      const efRows = [['EF-1', 'Efectivo y equivalentes', s('1101')], ['EF-1', 'Cuentas por cobrar', s('1202')], ['EF-1', 'Existencias', s('1301') + s('1302')], ['EF-1', 'Activo no corriente neto', aNo], ['EF-1', 'Total activo', E.act], ['EF-1', 'Total pasivo', E.pas], ['EF-1', 'Hacienda nacional', E.pat], ['EF-1', 'Resultado del ejercicio', E.res], ['EF-2', 'Total ingresos', E.ing], ['EF-2', 'Total gastos', E.gas], ['EF-2', 'Resultado', E.res], ['EF-4', 'Variación neta del efectivo', vari]];
+      document.getElementById('ef-x').addEventListener('click', () => U.csv('estados_financieros_agosto_2026', ['Formato', 'Rubro', 'Importe'], efRows.map(r => [r[0], r[1], r[2].toFixed(2)])));
+      document.getElementById('ef-pr').addEventListener('click', () => { const h = document.getElementById('k-p-ef').cloneNode(true); h.querySelectorAll('.row-flex').forEach(x => x.remove()); U.preview('Estados financieros · agosto 2026', U.doc({ tipo: 'Estados financieros', num: 'EF 08-2026', office: 'Oficina de Contabilidad', body: h.innerHTML, firmas: [['Contador General', 'R. Soto'], ['Director General de Administración', 'E. Mendoza'], ['Titular del pliego', 'Rectorado']] }), { file: 'estados_financieros_08_2026' }); });
     },
     paintDin() {
       const U = SIGA.ui;
-      document.getElementById('k-din').innerHTML = U.table([{ k: 0, label: 'Tipo de operación' }, { k: 1, label: 'Módulo de origen' }, { k: 2, label: 'Debe', render: r => r[2].split(' · ').map(c => `<span class="code">${c}</span>`).join(' ') }, { k: 3, label: 'Haber', render: r => r[3].split(' · ').map(c => `<span class="code">${c}</span>`).join(' ') }, { k: 4, label: 'Estado', render: () => U.tag('Activa', 't-green') }], K.dinamica);
+      const dRec = { mod: 'Contabilidad', tipo: 'Regla de dinámica contable', key: r => 'DIN ' + r[0], title: r => r[0], estado: 4, cls: false, anuladoValor: 'Inactiva',
+        fields: r => [['Tipo de operación', r[0]], ['Módulo de origen', r[1]], ['Cuentas al debe', r[2]], ['Cuentas al haber', r[3]], ['Estado', U.tag(r[4], r[4] === 'Activa' ? 't-green' : 't-gray')]],
+        edit: [{ k: 'd', label: 'Cuentas al debe (separadas por " · ")', get: r => r[2], set: (r, v) => r[2] = v }, { k: 'h', label: 'Cuentas al haber (separadas por " · ")', get: r => r[3], set: (r, v) => r[3] = v }],
+        anular: true, anularLabel: 'Desactivar regla', canAnular: r => r[4] === 'Activa',
+        extra: r => r[4] !== 'Activa' ? [{ icon: 'fa-toggle-on', label: 'Reactivar regla', fn: x => { x[4] = 'Activa'; x.anulado = false; SIGA.log('Contabilidad', 'Reactivación de regla', x[0], 'Inactiva', 'Activa'); U.closeModal(); SIGA.refresh(); } }] : [] };
+      document.getElementById('k-din').innerHTML = U.grid({ id: 'con-din', title: 'dinámica contable', export: 'dinamica_contable', rows: K.dinamica, record: dRec, search: false, pageSize: 15, cols: [{ k: 0, label: 'Tipo de operación' }, { k: 1, label: 'Módulo de origen' }, { k: 2, label: 'Debe', render: r => r[2].split(' · ').map(c => `<span class="code">${c}</span>`).join(' ') }, { k: 3, label: 'Haber', render: r => r[3].split(' · ').map(c => `<span class="code">${c}</span>`).join(' ') }, { k: 4, label: 'Estado', render: r => U.tag(r[4], r[4] === 'Activa' ? 't-green' : 't-gray') }],
+        tools: [{ icon: 'fa-plus', label: 'Nueva regla', primary: true, fn: () => U.formModal('<i class="fa-solid fa-plus"></i> Nueva regla de dinámica contable', [{ k: 'o', label: 'Tipo de operación' }, { k: 'm', label: 'Módulo de origen', type: 'select', options: ['Presupuesto / Abastecimiento', 'Tesorería', 'Almacén', 'Ventas', 'Caja', 'Planillas', 'Centro de producción', 'Contabilidad', 'Patrimonio'], span: 1 }, { k: 'd', label: 'Debe', value: '5302', span: 1 }, { k: 'h', label: 'Haber', value: '2103' }], v => { if (!SIGA.sod(null, 'asiento.manual')) return; if (!v.o.trim()) { U.toast('Indique la operación', 'err'); return; } K.dinamica.push([v.o.trim(), v.m, v.d, v.h, 'Activa']); SIGA.log('Contabilidad', 'Nueva regla de dinámica', v.o, '—', v.d + ' / ' + v.h); U.closeModal(); SIGA.refresh(); U.toast('Regla registrada'); }, 'Registrar regla') }] });
     },
     paintAct() {
       const U = SIGA.ui;
@@ -121,12 +162,18 @@
       const mes = depMes();
       document.getElementById('k-p-act').innerHTML = `<div class="card"><h3><span class="dot"></span>Control de activos fijos y depreciación <span class="grow">C-13 · C-14 · depreciación en línea recta</span></h3><div id="act-t"></div>
         <div class="row-flex mt"><button class="btn" id="act-dep" ${K.depAgosto ? 'disabled' : ''}><i class="fa-solid fa-calculator"></i> ${K.depAgosto ? 'Depreciación de agosto registrada' : 'Calcular depreciación de agosto · ' + U.money(mes)}</button><span class="mini">Genera el asiento 5801 / 1508 automáticamente.</span></div></div>`;
-      document.getElementById('act-t').innerHTML = U.table([
-        { k: 0, label: 'Código patrimonial', render: r => `<span class="code">${r.a[0]}</span>` }, { k: 1, label: 'Bien', render: r => r.a[1] + `<div class="mini">${r.a[5]}</div>` },
-        { k: 2, label: 'Adquisición', render: r => r.a[2] }, { k: 3, label: 'Valor', r: true, render: r => U.money(r.a[3], '') }, { k: 4, label: 'Tasa', r: true, render: r => r.a[4] + '%' },
-        { k: 5, label: 'Dep. acumulada', r: true, render: r => U.money(r.acum, '') }, { k: 6, label: 'Valor neto', r: true, render: r => `<b>${U.money(r.neto, '')}</b>` },
-        { k: 7, label: 'Vida consumida', render: r => `<div class="mcell">${U.meter(r.acum / r.a[3] * 100, 'var(--secondary)')}<span>${(r.acum / r.a[3] * 100).toFixed(0)}%</span></div>` }
-      ], rows);
+      const aRec = { mod: 'Contabilidad', tipo: 'Cuadro de depreciación', key: r => r.a[0], title: r => r.a[1], cls: false,
+        fields: r => [['Código patrimonial', `<span class="code">${r.a[0]}</span>`], ['Bien', r.a[1], 1], ['Ubicación', r.a[5]], ['Adquisición', r.a[2]], ['Valor', U.money(r.a[3])], ['Tasa anual', r.a[4] + '%'], ['Depreciación mensual', U.money(r.mens)], ['Depreciación acumulada', U.money(r.acum)], ['Valor neto', `<b>${U.money(r.neto)}</b>`]],
+        body: r => `<div class="mt">${U.barcode(r.a[0], 220, 46)}</div>`,
+        edit: [{ k: 'u', label: 'Ubicación / responsable', get: r => r.a[5], set: (r, v) => r.a[5] = v }, { k: 't', label: 'Tasa de depreciación %', type: 'number', span: 1, get: r => r.a[4], set: (r, v) => r.a[4] = v }],
+        extra: () => [{ icon: 'fa-building-columns', label: 'Ver en Patrimonio', fn: x => { U.closeModal(); SIGA.go('patrimonio'); } }],
+        print: r => { const [d, m, y] = r.a[2].split('/').map(Number), anual = r.a[3] * r.a[4] / 100; let acc = 0; const rows = []; for (let yy = y; yy <= 2026; yy++) { const mm = yy === y ? 12 - m + 1 : yy === 2026 ? 8 : 12, dep = Math.min(r.a[3] - acc, anual / 12 * mm); acc += dep; rows.push([yy, U.money(dep, ''), U.money(acc, ''), U.money(r.a[3] - acc, '')]); } return { tipo: 'Cuadro de depreciación', num: r.a[0], body: dtbl([['Ejercicio'], ['Depreciación', 1], ['Acumulada', 1], ['Valor neto', 1]], rows) }; } };
+      document.getElementById('act-t').innerHTML = U.grid({ id: 'con-act', title: 'activos fijos', export: 'activos_fijos_depreciacion', rows, record: aRec, cols: [
+        { k: 0, label: 'Código patrimonial', render: r => `<span class="code">${r.a[0]}</span>` }, { k: 1, label: 'Bien', sv: r => r.a[1], render: r => r.a[1] + `<div class="mini">${r.a[5]}</div>` },
+        { k: 2, label: 'Adquisición', sv: r => r.a[2].split('/').reverse().join(''), render: r => r.a[2] }, { k: 3, label: 'Valor', r: true, sv: r => r.a[3], render: r => U.money(r.a[3], '') }, { k: 4, label: 'Tasa', r: true, sv: r => r.a[4], render: r => r.a[4] + '%' },
+        { k: 5, label: 'Dep. acumulada', r: true, sv: r => r.acum, render: r => U.money(r.acum, '') }, { k: 6, label: 'Valor neto', r: true, sv: r => r.neto, render: r => `<b>${U.money(r.neto, '')}</b>` },
+        { k: 7, label: 'Vida consumida', sv: r => r.acum / r.a[3], render: r => `<div class="mcell">${U.meter(r.acum / r.a[3] * 100, 'var(--secondary)')}<span>${(r.acum / r.a[3] * 100).toFixed(0)}%</span></div>` }
+      ], foot: rs => `<tr><td colspan="3" class="r"><b>Totales</b></td><td class="r num"><b>${U.money(rs.reduce((t, r) => t + r.a[3], 0), '')}</b></td><td></td><td class="r num"><b>${U.money(rs.reduce((t, r) => t + r.acum, 0), '')}</b></td><td class="r num"><b>${U.money(rs.reduce((t, r) => t + r.neto, 0), '')}</b></td><td colspan="2"></td></tr>` });
       document.getElementById('act-dep').addEventListener('click', () => this.depreciar());
     },
     depreciar() {
@@ -172,21 +219,22 @@
         }, i * 420 + 380);
       });
     },
-    nuevoAsiento() {
+    nuevoAsiento(base) {
       const U = SIGA.ui, ctas = Object.entries(K.plan).map(([k, v]) => k + ' ' + v);
       U.bigForm({
         title: 'Asiento de ajuste (manual)', icon: 'fa-book',
         sections: [{ title: 'Cabecera del asiento', cols: 3, fields: [
           { k: 'num', label: 'Asiento N°', value: 'A-' + (K.seq + 1), ro: true, span: 1 }, { k: 'fecha', label: 'Fecha', type: 'date', value: SIGA.ctx.hoyISO, span: 1, required: true },
           { k: 'tipo', label: 'Tipo', type: 'select', options: ['Ajuste', 'Reclasificación', 'Provisión', 'Apertura', 'Cierre'], span: 1 },
-          { k: 'glosa', label: 'Glosa', value: '', span: 3, required: true, ph: 'Descripción de la operación' }
+          { k: 'glosa', label: 'Glosa', value: base ? 'Copia de ' + base.num + ' · ' + base.glosa : '', span: 3, required: true, ph: 'Descripción de la operación' }
         ] }],
         items: { title: 'Movimientos (partida doble)', addLabel: 'Agregar línea', seed: { cuenta: ctas[0], debe: 0, haber: 0 },
-          rows: [{ cuenta: ctas.find(c => c.startsWith('5302')), debe: 250, haber: 0 }, { cuenta: ctas.find(c => c.startsWith('2103')), debe: 0, haber: 250 }],
+          rows: base ? base.lineas.map(l => ({ cuenta: ctas.find(c => c.startsWith(l.cta)) || ctas[0], debe: l.debe, haber: l.haber })) : [{ cuenta: ctas.find(c => c.startsWith('5302')), debe: 250, haber: 0 }, { cuenta: ctas.find(c => c.startsWith('2103')), debe: 0, haber: 250 }],
           columns: [{ k: 'cuenta', label: 'Cuenta contable', type: 'select', options: ctas, w: '58%' }, { k: 'debe', label: 'Debe', type: 'money', r: true, w: '21%' }, { k: 'haber', label: 'Haber', type: 'money', r: true, w: '21%' }] },
         totals: rows => { let td = 0, th = 0; rows.forEach(r => { td += parseFloat(r.debe) || 0; th += parseFloat(r.haber) || 0; }); const ok = Math.abs(td - th) < 0.005 && td > 0; return [{ label: 'Total debe', val: U.money(td, '') }, { label: 'Total haber', val: U.money(th, '') }, { label: ok ? 'Asiento cuadrado ✓' : 'Diferencia (debe cuadrar)', val: U.money(td - th, ''), big: true, cls: ok ? '' : 'neg' }]; },
         submitLabel: 'Registrar asiento',
         onSubmit: (v, rows) => {
+          if (!SIGA.sod(null, 'asiento.manual')) return;
           let td = 0, th = 0; rows.forEach(r => { td += parseFloat(r.debe) || 0; th += parseFloat(r.haber) || 0; });
           if (!(Math.abs(td - th) < 0.005 && td > 0)) { SIGA.log('Contabilidad', 'Asiento rechazado por descuadre', v.num, 'Debe ' + U.money(td), 'Haber ' + U.money(th)); U.toast('El sistema no acepta un asiento descuadrado: debe = haber', 'err'); return; }
           const num = 'A-' + (++K.seq);

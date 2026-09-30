@@ -34,3 +34,16 @@ SIGA.data.tablas = {
       cols: ['Unidad', 'Línea de producción', 'Centro de costo'], src: () => SIGA.data.produccion.unidades.map(u => [u.nom, u.linea, u.cc]) }
   ]
 };
+
+/* Los maestros se alimentan de los registros de cada módulo (un solo dato, sin duplicados) */
+(function () {
+  const T = SIGA.data.tablas.catalogos, by = id => T.find(c => c.id === id), A = SIGA.data.abastecimiento, P = SIGA.data.presupuesto, L = SIGA.data.almacen;
+  const add = (id, rows) => { const c = by(id); rows.forEach(r => { if (!c.rows.some(x => x[0] === r[0])) c.rows.push(r); }); };
+  add('proved', A.proveedores.map(p => [p.ruc, p.rs, 'Activo · habido']).concat(SIGA.data.tesoreria.cp.filter(c => /^20\d{9}$/.test(c.ruc)).map(c => [c.ruc, c.benef, 'Activo · habido'])));
+  add('catabi', L.items.map(i => [i.cod, i.desc, i.um]).concat(P.catalogo.map(c => [c[0], c[1], c[2]])));
+  add('cencos', P.centros.map(c => [c[0], c[1], 'Jefe de ' + c[1].split(' — ')[0]]));
+  add('clagas', P.marco.map(m => [m.clasif, m.desc, m.clasif.slice(0, 3)]).concat([['2.1.1 1.1 3', 'Personal administrativo nombrado (régimen público)', '2.1'], ['2.1.1 5.1 1', 'Contrato administrativo de servicios', '2.1'], ['2.2.1 1.1 1', 'Régimen de pensiones D.L. 20530', '2.2'], ['2.6.3 2.3 1', 'Equipos computacionales y periféricos', '2.6'], ['2.6.2 2.1 1', 'Edificios e instalaciones', '2.6']]));
+  add('claing', [['1.3.3 9.1', 'Servicios de laboratorio y análisis', '09 RDR'], ['1.3.1 1.1', 'Venta de productos agropecuarios', '09 RDR'], ['1.3.2 1.1', 'Derechos de admisión', '09 RDR'], ['1.3.2 3.1', 'Constancias y certificados', '09 RDR'], ['1.5.5 1.1', 'Ingresos diversos', '09 RDR']]);
+  add('nemonico', [['LACT01', 'Producción de leche y derivados', '0115'], ['CAFE01', 'Procesamiento de café y cacao', '0116'], ['SUEL01', 'Investigación en suelos amazónicos', '0120'], ['TIC01', 'Transformación digital', '0087']]);
+  add('docume', [['NEA', 'Nota de entrada a almacén', 'Almacén'], ['OC', 'Orden de compra', 'Abastecimiento'], ['OS', 'Orden de servicio', 'Abastecimiento'], ['CCP', 'Certificación de crédito presupuestario', 'Presupuesto'], ['CP', 'Comprobante de pago', 'Tesorería'], ['REQ', 'Requerimiento del área usuaria', 'Abastecimiento'], ['VIA', 'Planilla de viáticos', 'Abastecimiento'], ['NM', 'Nota modificatoria', 'Presupuesto'], ['BAJ', 'Resolución de baja', 'Patrimonio']]);
+})();

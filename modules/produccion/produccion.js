@@ -12,6 +12,22 @@
   const cu = c => (c[2] + c[3] + c[4] + c[5]) * (1 + c[6] / 100);
   SIGA.prod = { costeo };
 
+  const dtbl = (head, rows) => `<table class="doc-tbl"><thead><tr>${head.map(h => `<th class="${h[1] ? 'r' : ''}">${h[0]}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${r.map((c, i) => `<td class="${head[i][1] ? 'r' : ''}">${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+  const PM = () => SIGA.modules.produccion;
+  const ECL = { 'En proceso': 't-blue', Terminada: 't-amber', Cerrada: 't-green', Anulada: 't-red' };
+  const opRec = SIGA.recs.op = {
+    mod: 'Centros de producción', tipo: 'Orden de producción', office: 'Centros de Producción de Bienes y Servicios', key: o => o.op, title: o => o.op + ' · ' + o.prod, cls: false, anuladoValor: 'Anulada',
+    view: o => PM().verOP(o),
+    fields: o => { const U = SIGA.ui, c = costeo(o); return [['Orden', o.op], ['Producto', o.prod], ['Unidad productiva', o.unidad], ['Cantidad', U.int(o.cant) + ' ' + o.um], ['Inicio · fin', o.inicio + ' · ' + o.fin], ['Avance', o.avance + '%'], ['Costo total', U.money(c.tot)], ['Costo unitario', 'S/ ' + c.cu.toFixed(2)], ['Estado', o.estado]]; },
+    edit: [{ k: 'avance', label: 'Avance %', type: 'number', span: 1 }, { k: 'fin', label: 'Fecha meta', span: 1 }, { k: 'merma', label: 'Merma real %', type: 'number', span: 1 }],
+    canEdit: o => o.estado === 'En proceso',
+    onEdit: o => { o.avance = Math.max(0, Math.min(100, o.avance)); if (o.avance >= 100) { o.estado = 'Terminada'; SIGA.ui.toast(o.op + ' terminada · lista para ingresar al almacén'); } },
+    anular: true, anularLabel: 'Anular orden', canAnular: o => o.estado === 'En proceso' && o.avance < 50,
+    extra: o => [...(o.estado === 'Terminada' ? [{ icon: 'fa-box-archive', label: 'Cerrar e ingresar producto terminado', fn: x => PM().cerrarOP(x) }] : []), ...(o.estado === 'En proceso' ? [{ icon: 'fa-dolly', label: 'Solicitar insumos (PECOSA)', fn: x => { const ab = SIGA.modules.abastecimiento; ab.tipo = 'pec'; if (ab.st) { ab.st.v.pec.dep = x.unidad; ab.st.v.pec.ref = 'Insumos para ' + x.op + ' · ' + x.prod; ab.st.items.pec = x.insumos.filter(i => i[0] !== '—').map(i => ({ cod: i[0], desc: i[1], um: i[2].toUpperCase(), cant: Math.ceil(i[3] * (1 - x.avance / 100)), pu: i[4] })); } SIGA.ui.closeModal(); SIGA.go('abastecimiento'); } }] : [])],
+    print: o => { const U = SIGA.ui, c = costeo(o); return { tipo: 'Orden de producción · hoja de costos', num: o.op, pairs: [['Producto', o.prod], ['Unidad productiva', o.unidad], ['Cantidad', U.int(o.cant) + ' ' + o.um + ' · merma ' + o.merma + '%'], ['Periodo', o.inicio + ' – ' + o.fin]],
+      body: dtbl([['Insumo'], ['Und'], ['Cant.', 1], ['C. unit.', 1], ['Subtotal', 1]], o.insumos.map(i => [i[1], i[2], i[3], U.money(i[4], ''), U.money(i[3] * i[4], '')])) + dtbl([['Elemento del costo'], ['S/', 1]], [['Materia prima', U.money(c.mp, '')], ['Mano de obra (' + o.mo[0] + ' h)', U.money(c.mo, '')], ['Depreciación', U.money(c.dep, '')], ['Costos indirectos', U.money(c.cif, '')], ['<b>Costo total</b>', '<b>' + U.money(c.tot, '') + '</b>'], ['Costo unitario por ' + o.um, c.cu.toFixed(4)], ['Margen estimado', U.money(c.mar, '')]]) }; }
+  };
+
   SIGA.registerModule('produccion', {
     title: 'Centros de producción', icon: 'fa-industry', group: 'Centros de Producción · RDR', badge: 'RDR', badgeHot: true,
     alerts() {
@@ -43,41 +59,48 @@
     },
     paintUni() {
       const U = SIGA.ui;
-      document.getElementById('cp-uni').innerHTML = U.table([
-        { k: 'nom', label: 'Unidad productiva', render: r => `<b>${r.nom}</b><div class="mini">${r.linea}</div>` }, { k: 'tipo', label: 'Tipo', render: r => U.tag(r.tipo, { Pecuaria: 't-teal', Agrícola: 't-green', Agroindustrial: 't-blue', Servicios: 't-gray' }[r.tipo]) },
+      const goOf = u => u.tipo === 'Pecuaria' ? 'pecuario' : u.tipo === 'Agrícola' ? 'agricola' : 'ventas';
+      const uRec = { mod: 'Centros de producción', tipo: 'Ficha de unidad productiva', key: u => u.cc, title: u => u.nom, cls: false,
+        fields: u => [['Línea de producción', u.linea, 1], ['Tipo', u.tipo], ['Centro de costo presupuestal (CP-12)', `<span class="code">${u.cc}</span>`], ['Ingresos de agosto', U.money(u.ing)], ['Costo de producción', U.money(u.cos)], ['Resultado', `<b class="${u.ing - u.cos >= 0 ? 'saldo-pos' : 'saldo-neg'}">${U.money(u.ing - u.cos)}</b>`], ['Registro anterior', u.antes], ['Estado', u.estado]],
+        body: u => { const os = P.ordenes.filter(o => o.unidad === u.nom); return os.length ? `<div class="lbl-s mt mb">Órdenes de producción (${os.length})</div>` + U.table([{ k: 'op', label: 'Orden' }, { k: 'prod', label: 'Producto' }, { k: 'estado', label: 'Estado', render: o => U.tag(o.estado, ECL[o.estado]) }, { k: 'c', label: 'Costo', r: true, render: o => U.money(costeo(o).tot) }], os, { onRow: o => this.verOP(o) }) : ''; },
+        edit: [{ k: 'estado', label: 'Estado', type: 'select', options: ['Operativa', 'En campaña', 'En mantenimiento', 'En implementación', 'Suspendida'], span: 1 }, { k: 'linea', label: 'Línea de producción' }],
+        extra: u => [{ icon: 'fa-arrow-right', label: 'Ir a ' + SIGA.modules[goOf(u)].title, fn: x => { U.closeModal(); SIGA.go(goOf(x)); } }, { icon: 'fa-industry', label: 'Nueva orden de producción', fn: () => { U.closeModal(); this.nuevaOP(); } }] };
+      document.getElementById('cp-uni').innerHTML = U.grid({ id: 'pro-uni', title: 'unidades productivas', export: 'unidades_productivas', rows: P.unidades, record: uRec, pageSize: 14, filter: { label: 'Tipo', get: r => r.tipo }, cols: [
+        { k: 'nom', label: 'Unidad productiva', render: r => `<b>${r.nom}</b><div class="mini">${r.linea}</div>`, csv: r => r.nom }, { k: 'tipo', label: 'Tipo', render: r => U.tag(r.tipo, { Pecuaria: 't-teal', Agrícola: 't-green', Agroindustrial: 't-blue', Servicios: 't-gray' }[r.tipo]) },
         { k: 'ing', label: 'Ingresos', r: true, render: r => U.money(r.ing) }, { k: 'cos', label: 'Costo', r: true, render: r => U.money(r.cos) },
-        { k: 'm', label: 'Margen', render: r => r.ing ? `<div class="mcell">${U.meter((r.ing - r.cos) / r.ing * 100 * 1.6)}<span>${((r.ing - r.cos) / r.ing * 100).toFixed(0)}%</span></div>` : '<span class="mini">—</span>' },
+        { k: 'm', label: 'Margen', sv: r => r.ing ? (r.ing - r.cos) / r.ing : -1, render: r => r.ing ? `<div class="mcell">${U.meter((r.ing - r.cos) / r.ing * 100 * 1.6)}<span>${((r.ing - r.cos) / r.ing * 100).toFixed(0)}%</span></div>` : '<span class="mini">—</span>' },
         { k: 'antes', label: 'Registro anterior', render: r => `<span class="mini" style="text-decoration:line-through">${r.antes}</span>` },
         { k: 'estado', label: 'Estado', render: r => U.tag(r.estado, r.estado === 'Operativa' ? 't-green' : r.estado === 'En campaña' ? 't-amber' : 't-gray') }
-      ], P.unidades, {
-        onRow: u => {
-          const go = u.tipo === 'Pecuaria' ? 'pecuario' : u.tipo === 'Agrícola' ? 'agricola' : 'ventas';
-          U.detail(u.nom, [['Línea de producción', u.linea], ['Tipo', u.tipo], ['Centro de costo presupuestal (CP-12)', `<span class="code">${u.cc}</span>`], ['Ingresos de agosto', U.money(u.ing)], ['Costo de producción', U.money(u.cos)], ['Resultado', `<b class="${u.ing - u.cos >= 0 ? 'saldo-pos' : 'saldo-neg'}">${U.money(u.ing - u.cos)}</b>`], ['Registro anterior', u.antes], ['Estado', u.estado]],
-            `<button class="btn ghost" data-close>Cerrar</button><button class="btn" onclick="SIGA.go('${go}')"><i class="fa-solid fa-arrow-right"></i> ${SIGA.modules[go].title}</button>`);
-        }
-      });
+      ], foot: rs => `<tr><td colspan="3" class="r"><b>Total</b></td><td class="r num"><b>${U.money(rs.reduce((s, u) => s + u.ing, 0))}</b></td><td class="r num"><b>${U.money(rs.reduce((s, u) => s + u.cos, 0))}</b></td><td colspan="4"></td></tr>` });
     },
     paintCU() {
       const U = SIGA.ui;
       document.getElementById('cp-p-cu').innerHTML = `<div class="card"><h3><span class="dot"></span>¿Cuánto cuesta un litro de leche o un kilo de carne? <span class="grow">CP-07 · costo unitario real con merma</span></h3><div id="cu-t"></div>
         <p class="mini mt">Costo unitario = (insumos + mano de obra + depreciación + costos indirectos) × (1 + merma). Por primera vez los precios de venta se sustentan en información de costos.</p></div>`;
-      document.getElementById('cu-t').innerHTML = U.table([
-        { k: 0, label: 'Producto', render: r => `<b>${r[0]}</b><div class="mini">${r[8]} · por ${r[1]}</div>` },
+      const cuRec = { mod: 'Centros de producción', tipo: 'Estructura de costo unitario', key: r => 'CU ' + r[0], title: r => 'Costo unitario · ' + r[0], cls: false,
+        fields: r => [['Producto', r[0]], ['Unidad', r[1]], ['Unidad productiva', r[8]], ['Insumos', r[2].toFixed(2)], ['Mano de obra', r[3].toFixed(2)], ['Depreciación', r[4].toFixed(2)], ['CIF', r[5].toFixed(2)], ['Merma', r[6] + '%'], ['Costo unitario', `<b>S/ ${cu(r).toFixed(2)}</b>`], ['Precio de venta', 'S/ ' + r[7].toFixed(2)], ['Margen', ((r[7] - cu(r)) / r[7] * 100).toFixed(1) + '%']],
+        edit: [[2, 'Insumos S/'], [3, 'Mano de obra S/'], [4, 'Depreciación S/'], [5, 'CIF S/'], [6, 'Merma %'], [7, 'Precio de venta S/']].map(([i, l]) => ({ k: 'c' + i, label: l, type: 'number', span: 1, get: r => r[i], set: (r, v) => r[i] = v })),
+        onEdit: r => { const p = SIGA.data.ventas.productos.find(x => r[0].toLowerCase().startsWith(x.desc.toLowerCase().split(' ')[0]) && x.unidad === r[8]); if (p && p.pu !== r[7]) { p.pu = r[7]; SIGA.ui.toast('Precio de ' + p.desc + ' actualizado en el catálogo de ventas'); } } };
+      document.getElementById('cu-t').innerHTML = U.grid({ id: 'pro-cu', title: 'costos unitarios', export: 'costo_unitario_real', rows: P.costos, record: cuRec, pageSize: 12, cols: [
+        { k: 0, label: 'Producto', render: r => `<b>${r[0]}</b><div class="mini">${r[8]} · por ${r[1]}</div>`, csv: r => r[0] },
         { k: 2, label: 'Insumos', r: true, render: r => r[2].toFixed(2) }, { k: 3, label: 'Mano de obra', r: true, render: r => r[3].toFixed(2) }, { k: 4, label: 'Deprec.', r: true, render: r => r[4].toFixed(2) }, { k: 5, label: 'CIF', r: true, render: r => r[5].toFixed(2) }, { k: 6, label: 'Merma', r: true, render: r => r[6] + '%' },
-        { k: 'cu', label: 'Costo unitario', r: true, render: r => `<b>S/ ${cu(r).toFixed(2)}</b>` }, { k: 7, label: 'Precio', r: true, render: r => 'S/ ' + r[7].toFixed(2) },
-        { k: 'm', label: 'Margen', render: r => { const m = (r[7] - cu(r)) / r[7] * 100; return `<div class="mcell">${U.meter(m * 1.4)}<span>${m.toFixed(0)}%</span></div>`; } }
-      ], P.costos);
+        { k: 'cu', label: 'Costo unitario', r: true, sv: cu, render: r => `<b>S/ ${cu(r).toFixed(2)}</b>` }, { k: 7, label: 'Precio', r: true, render: r => 'S/ ' + r[7].toFixed(2) },
+        { k: 'm', label: 'Margen', sv: r => (r[7] - cu(r)) / r[7], render: r => { const m = (r[7] - cu(r)) / r[7] * 100; return `<div class="mcell">${U.meter(m * 1.4)}<span>${m.toFixed(0)}%</span></div>`; } }
+      ] });
     },
     paintOps() {
       const U = SIGA.ui;
-      document.getElementById('cp-ops').innerHTML = U.table([
-        { k: 'op', label: 'Orden', render: r => `<span class="code">${r.op}</span>` }, { k: 'prod', label: 'Producto', render: r => `${r.prod}<div class="mini">${r.unidad}</div>` },
+      document.getElementById('cp-ops').innerHTML = U.grid({ id: 'pro-ops', title: 'órdenes de producción', export: 'ordenes_produccion', rows: P.ordenes, record: opRec, pageSize: 10, filter: { label: 'Estado', get: r => r.estado }, cols: [
+        { k: 'op', label: 'Orden', render: r => `<span class="code">${r.op}</span>` }, { k: 'prod', label: 'Producto', render: r => `${r.prod}<div class="mini">${r.unidad}</div>`, csv: r => r.prod },
         { k: 'cant', label: 'Cantidad', r: true, render: r => U.int(r.cant) + ' ' + r.um },
-        { k: 'c', label: 'Costo total', r: true, render: r => U.money(costeo(r).tot) }, { k: 'u', label: 'Costo unit.', r: true, render: r => 'S/ ' + costeo(r).cu.toFixed(2) },
-        { k: 'mar', label: 'Margen est.', r: true, render: r => { const c = costeo(r); return `<span class="${c.mar >= 0 ? 'saldo-pos' : 'saldo-neg'}">${U.money(c.mar)}</span>`; } },
-        { k: 'av', label: 'Avance', render: r => `<div class="mcell">${U.meter(r.avance, 'var(--secondary)')}<span>${r.avance}%</span></div>` },
-        { k: 'estado', label: 'Estado', render: r => U.tag(r.estado, r.estado === 'Terminada' ? 't-amber' : r.estado === 'Cerrada' ? 't-green' : 't-blue') }
-      ], P.ordenes, { onRow: o => this.verOP(o), rowCls: r => r.nuevo ? 'row-new' : '', actions: [{ icon: 'fa-box-archive', title: 'Cerrar e ingresar producto terminado', show: r => r.estado === 'Terminada', fn: o => this.cerrarOP(o) }, { icon: 'fa-eye', title: 'Ver costeo', fn: o => this.verOP(o) }] });
+        { k: 'c', label: 'Costo total', r: true, sv: r => costeo(r).tot, render: r => U.money(costeo(r).tot) }, { k: 'u', label: 'Costo unit.', r: true, sv: r => costeo(r).cu, render: r => 'S/ ' + costeo(r).cu.toFixed(2) },
+        { k: 'mar', label: 'Margen est.', r: true, sv: r => costeo(r).mar, render: r => { const c = costeo(r); return `<span class="${c.mar >= 0 ? 'saldo-pos' : 'saldo-neg'}">${U.money(c.mar)}</span>`; } },
+        { k: 'avance', label: 'Avance', render: r => `<div class="mcell">${U.meter(r.avance, 'var(--secondary)')}<span>${r.avance}%</span></div>` },
+        { k: 'estado', label: 'Estado', render: r => U.tag(r.estado, ECL[r.estado]) }
+      ], rowCls: r => (r.nuevo ? 'row-new' : '') + (r.anulado ? ' row-void' : ''),
+        actions: [{ icon: 'fa-box-archive', title: 'Cerrar e ingresar producto terminado', show: r => r.estado === 'Terminada', fn: o => this.cerrarOP(o) }, { icon: 'fa-gauge-high', title: 'Registrar avance', show: r => r.estado === 'En proceso', fn: o => U.rec(opRec).editar(o) }, { icon: 'fa-print', title: 'Hoja de costos', fn: o => U.rec(opRec).imprimir(o) }],
+        tools: [{ icon: 'fa-plus', label: 'Nueva orden', primary: true, fn: () => this.nuevaOP() }],
+        foot: rs => { const v = rs.filter(o => o.estado !== 'Anulada'); return `<tr><td colspan="4" class="r"><b>Total (${v.length})</b></td><td class="r num"><b>${U.money(v.reduce((s, o) => s + costeo(o).tot, 0))}</b></td><td></td><td class="r num"><b>${U.money(v.reduce((s, o) => s + costeo(o).mar, 0))}</b></td><td colspan="3"></td></tr>`; } });
     },
     verOP(o) {
       const U = SIGA.ui, c = costeo(o);
@@ -89,8 +112,11 @@
           <div class="row"><span>Depreciación de equipos</span><span>${U.money(c.dep)}</span></div><div class="row"><span>Costos indirectos (${o.cif}% MP)</span><span>${U.money(c.cif)}</span></div>
           <div class="row"><span><b>Costo total</b></span><span><b>${U.money(c.tot)}</b></span></div><div class="row"><span>Ingreso proyectado (S/ ${o.pv}/${o.um})</span><span class="g">${U.money(c.ing)}</span></div>
           <div class="row"><span>Margen estimado</span><span class="g">${U.money(c.mar)} · ${(c.mar / c.ing * 100).toFixed(0)}%</span></div></div></div></div>`,
-        `<button class="btn ghost" data-close>Cerrar</button>${o.estado === 'Terminada' ? '<button class="btn" id="op-close"><i class="fa-solid fa-box-archive"></i> Ingresar producto terminado</button>' : ''}`, 'wide');
+        `<button class="btn ghost" data-close>Cerrar</button><button class="btn ghost" id="op-h"><i class="fa-solid fa-clock-rotate-left"></i> Historial</button>${o.estado === 'En proceso' ? '<button class="btn ghost" id="op-av"><i class="fa-solid fa-gauge-high"></i> Registrar avance</button>' : ''}<button class="btn sec" id="op-pr"><i class="fa-solid fa-print"></i> Hoja de costos</button>${o.estado === 'Terminada' ? '<button class="btn" id="op-close"><i class="fa-solid fa-box-archive"></i> Ingresar producto terminado</button>' : ''}`, 'wide');
       b.querySelector('#op-close')?.addEventListener('click', () => { U.closeModal(); this.cerrarOP(o); });
+      b.querySelector('#op-av')?.addEventListener('click', () => U.rec(opRec).editar(o));
+      b.querySelector('#op-h').addEventListener('click', () => U.rec(opRec).historial(o));
+      b.querySelector('#op-pr').addEventListener('click', () => U.rec(opRec).imprimir(o));
     },
     cerrarOP(o) {
       const U = SIGA.ui, c = costeo(o);
@@ -105,11 +131,14 @@
     paintPlan() {
       const U = SIGA.ui;
       document.getElementById('cp-p-plan').innerHTML = `<div class="card"><h3><span class="dot"></span>Plan de producción · agosto 2026 <span class="grow">CP-02 · programado vs real al ${SIGA.ctx.hoyCorta} (día 18 de 31 · 58% del mes)</span></h3><div id="pl-t"></div></div>`;
-      document.getElementById('pl-t').innerHTML = U.table([
+      const plRec = { mod: 'Centros de producción', tipo: 'Plan de producción', key: r => 'PLAN ' + r[0] + ' ' + r[1], title: r => r[1] + ' · ' + r[0], cls: false,
+        fields: r => [['Unidad', r[0]], ['Producto', r[1]], ['Plan del mes', U.int(r[3]) + ' ' + r[2]], ['Real a la fecha', U.int(r[4]) + ' ' + r[2]], ['Avance', (r[4] / r[3] * 100).toFixed(1) + '%'], ['Proyección al cierre', U.int(Math.round(r[4] / 0.58)) + ' ' + r[2]]],
+        edit: [{ k: 'real', label: 'Producción real acumulada', type: 'number', span: 1, get: r => r[4], set: (r, v) => r[4] = v }, { k: 'plan', label: 'Plan del mes', type: 'number', span: 1, get: r => r[3], set: (r, v) => r[3] = v }] };
+      document.getElementById('pl-t').innerHTML = U.grid({ id: 'pro-plan', title: 'plan de producción', export: 'plan_produccion_agosto', rows: P.plan, record: plRec, search: false, pageSize: 15, cols: [
         { k: 0, label: 'Unidad' }, { k: 1, label: 'Producto' }, { k: 3, label: 'Plan del mes', r: true, render: r => U.int(r[3]) + ' ' + r[2] }, { k: 4, label: 'Real a la fecha', r: true, render: r => U.int(r[4]) + ' ' + r[2] },
         { k: 'a', label: 'Avance', render: r => { const p = r[4] / r[3] * 100; return `<div class="mcell">${U.meter(p / 0.58, p >= 55 ? 'var(--primary)' : 'var(--warning)')}<span>${p.toFixed(0)}%</span></div>`; } },
-        { k: 's', label: 'Ritmo', render: r => r[4] / r[3] >= 0.55 ? U.tag('En ritmo', 't-green') : U.tag('Bajo ritmo', 't-amber') }
-      ], P.plan);
+        { k: 's', label: 'Ritmo', sv: r => r[4] / r[3], render: r => r[4] / r[3] >= 0.55 ? U.tag('En ritmo', 't-green') : U.tag('Bajo ritmo', 't-amber') }
+      ], actions: [{ icon: 'fa-pen', title: 'Registrar producción', fn: r => U.rec(plRec).editar(r) }] });
     },
     paintRen(ing, cos) {
       const U = SIGA.ui, M = P.mensual, exc = ing - cos;

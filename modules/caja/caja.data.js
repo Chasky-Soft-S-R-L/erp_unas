@@ -19,3 +19,22 @@ SIGA.data.caja = {
   ],
   denom: [[200, 'Billete'], [100, 'Billete'], [50, 'Billete'], [20, 'Billete'], [10, 'Billete'], [5, 'Moneda'], [2, 'Moneda'], [1, 'Moneda'], [0.5, 'Moneda'], [0.2, 'Moneda'], [0.1, 'Moneda']]
 };
+
+/* Ampliación: recibos de las ventas y cobranzas del 01 al 15 de agosto y sus depósitos confirmados */
+(function () {
+  const K = SIGA.data.caja, V = SIGA.data.ventas, G = SIGA.gen, r = G.rng(9090);
+  const cl = u => /Laboratorio|maquinaria/i.test(u) ? '1.3.3 9.1' : /Planta/i.test(u) ? '1.3.1 3.1' : '1.3.1 1.1';
+  const desc = cod => (V.productos.find(p => p.cod === cod) || {}).desc || 'productos';
+  let n = 8850;
+  V.comprobantes.filter(c => +c.fecha.slice(0, 2) <= 15 && c.fecha.slice(3, 5) === '08' && !K.ingresos.some(x => x.comprob === c.doc)).forEach(c => {
+    if (c.op === 'Contado') K.ingresos.push({ num: 'R-0' + (n--), fecha: c.fecha, concepto: 'Venta · ' + desc(c.items[0][0]).split(' · ')[0].toLowerCase() + (c.items.length > 1 ? ' y otros' : ''), clasif: cl(c.unidad), unidad: c.unidad, pagador: c.cli, medio: c.tipo === '01' ? 'Transferencia' : G.pick(r, ['Efectivo', 'Efectivo', 'Tarjeta']), comprob: c.doc, depositado: true });
+    else if (c.cobrado === null) K.ingresos.push({ num: 'R-0' + (n--), fecha: c.fecha, concepto: 'Cobranza · ' + c.doc, clasif: cl(c.unidad), unidad: c.unidad, pagador: c.cli, medio: 'Transferencia', comprob: c.doc, cobranza: true, depositado: true });
+  });
+  K.depositos.push(
+    { num: 'DEP-0234', fecha: '09/08/2026', monto: 8640.00, cta: 'B. Nación ••7830 (RDR)', estado: 'Confirmado', nota: 'NM-0024 · ampliación fuente 09' },
+    { num: 'DEP-0233', fecha: '07/08/2026', monto: 6915.50, cta: 'B. Nación ••7830 (RDR)', estado: 'Confirmado', nota: 'NM-0024 · ampliación fuente 09' },
+    { num: 'DEP-0231', fecha: '05/08/2026', monto: 12450.00, cta: 'B. Nación ••7830 (RDR)', estado: 'Confirmado', nota: 'NM-0024 · ampliación fuente 09' },
+    { num: 'DEP-0229', fecha: '03/08/2026', monto: 4210.80, cta: 'B. Nación ••7830 (RDR)', estado: 'Confirmado', nota: 'NM-0024 · ampliación fuente 09' },
+    { num: 'DEP-0228', fecha: '01/08/2026', monto: 9876.40, cta: 'Interbank ••1120 (RDR · centros de producción)', estado: 'Confirmado', nota: 'NM-0024 · ampliación fuente 09' }
+  );
+})();

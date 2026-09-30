@@ -48,3 +48,52 @@ SIGA.data.planilla = {
   marcoPersonal: { pim: 58420000, ejecutado: 34180000 },
   generada: false
 };
+
+/* Ampliación del legajo digital: trabajadores de todos los regímenes con su estructura remunerativa */
+(function () {
+  const P = SIGA.data.planilla, G = SIGA.gen, r = G.rng(7070);
+  const r2 = v => Math.round(v * 100) / 100;
+  const prev = (b, sis) => sis === 'ONP' ? [['ONP 13%', 'D', r2(b * 0.13)]] : sis.startsWith('AFP') ? [['AFP · aporte obligatorio 10%', 'D', r2(b * 0.10)], ['AFP · prima de seguro 1.37%', 'D', r2(b * 0.0137)]] : [];
+  const quinta = b => b * 14 > 36050 ? [['Renta de 5.ª categoría', 'D', r2(Math.max(0, (b * 14 - 36050) * 0.08 / 12))]] : [];
+  const T = {
+    doc: (b) => [['Remuneración principal', 'I', b], ['Homologación docente', 'I', r2(b * 0.68)], ['Asignación por tiempo de servicios', 'I', 200]],
+    adm: (b) => [['Remuneración básica', 'I', b], ['Remuneración reunificada', 'I', r2(b * 0.6)], ['Bonificación personal', 'I', 220], ['Incentivo único (CAFAE)', 'I', 450]],
+    cas: (b) => [['Remuneración CAS', 'I', b]],
+    con: (b) => [['Remuneración por contrato', 'I', b], ['Asignación por movilidad', 'I', 150]],
+    obr: (b) => [['Remuneración básica', 'I', b], ['Bonificación por trabajo de campo', 'I', 600]],
+    aut: (b) => [['Remuneración de autoridad', 'I', b], ['Asignación por función directiva', 'I', r2(b * 0.3)]]
+  };
+  const L = [
+    ['doc', '01 · Docente nombrado', 'Docente principal a tiempo completo', 'Facultad de Industrias Alimentarias', 'Nombrado', 4215, 'AFP Prima', '12/03/2001'],
+    ['doc', '01 · Docente nombrado', 'Docente asociado a tiempo completo', 'Facultad de Recursos Naturales Renovables', 'Nombrado', 2890, 'ONP', '01/04/2011'],
+    ['doc', '01 · Docente nombrado', 'Docente auxiliar a tiempo completo', 'Facultad de Ingeniería en Informática y Sistemas', 'Nombrado', 2120, 'AFP Integra', '01/03/2018'],
+    ['doc', '01 · Docente nombrado', 'Docente principal a dedicación exclusiva', 'Facultad de Zootecnia', 'Nombrado', 4380, 'AFP Habitat', '15/08/1998'],
+    ['adm', '02 · D.L. 276', 'Especialista en presupuesto', 'Oficina de Planificación y Presupuesto', 'Nombrado', 1980, 'ONP', '02/05/2009'],
+    ['adm', '02 · D.L. 276', 'Técnico en contabilidad', 'Oficina de Contabilidad', 'Nombrado', 1620, 'AFP Integra', '01/10/2012'],
+    ['adm', '02 · D.L. 276', 'Secretaria ejecutiva', 'Dirección General de Administración', 'Nombrado', 1540, 'ONP', '14/02/2005'],
+    ['adm', '02 · D.L. 276', 'Chofer', 'Unidad de Servicios Generales', 'Nombrado', 1420, 'ONP', '03/07/2007'],
+    ['cas', '06 · CAS', 'Analista de sistemas', 'Oficina de Tecnologías de la Información', 'Activo', 3600, 'AFP Prima', '02/01/2024'],
+    ['cas', '06 · CAS', 'Asistente administrativo', 'Oficina de Abastecimiento', 'Activo', 2400, 'AFP Habitat', '02/01/2025'],
+    ['cas', '06 · CAS', 'Técnico pecuario', 'Granja Zootecnia', 'Activo', 2600, 'ONP', '01/03/2024'],
+    ['cas', '06 · CAS', 'Operario de planta', 'Planta Piloto de Lácteos', 'Activo', 1850, 'AFP Integra', '01/06/2025'],
+    ['con', '03 · Personal contratado', 'Docente contratado · tipo A', 'Facultad de Agronomía', 'Contratado', 3100, 'AFP Prima', '16/03/2026'],
+    ['con', '03 · Personal contratado', 'Docente contratado · tipo B', 'Facultad de Ciencias Económicas', 'Contratado', 2250, 'ONP', '16/03/2026'],
+    ['obr', '05 · Obrero permanente', 'Obrero de mantenimiento', 'Unidad de Servicios Generales', 'Nombrado', 1780, 'ONP', '20/09/2003'],
+    ['aut', '04 · Autoridad universitaria', 'Director General de Administración', 'Dirección General de Administración', 'Designado', 9800, 'AFP Integra', '02/01/2025']
+  ];
+  const used = new Set(P.trabajadores.map(t => t.cod));
+  L.forEach(x => {
+    let cod; do { cod = '••' + G.int(r, 120, 989); } while (used.has(cod)); used.add(cod);
+    const [tp, reg, cargo, dep, cond, b, sis, ing] = x, c = T[tp](b), rem = c.reduce((s, k) => s + k[2], 0);
+    const banco = G.pick(r, ['Banco de la Nación', 'Banco de la Nación', 'BCP', 'Interbank']) + ' ••' + G.int(r, 1000, 9999);
+    P.trabajadores.push({ cod, nom: (tp === 'doc' ? 'Docente' : tp === 'cas' ? 'Contratado' : tp === 'aut' ? 'Autoridad' : tp === 'obr' ? 'Obrero' : 'Administrativo') + ' ••••', dni: G.pick(r, ['4', '7', '2']) + '•••••' + G.pad(G.int(r, 0, 99), 2), reg, cargo, dep, cond, ing, sis, cuspp: sis.startsWith('AFP') ? G.int(r, 5, 6) + '•••••' + G.pick(r, ['RIV', 'QAM', 'HAB', 'PRF']) + G.int(r, 1, 9) : '—', banco, correo: cargo[0].toLowerCase() + '•••@unas.edu.pe',
+      c: [...c, ...prev(rem, sis), ...quinta(rem), ...(G.int(r, 0, 3) === 0 ? [['Préstamo cooperativa', 'D', G.amt(r, 100, 400, 10)]] : []), ['EsSalud 9%', 'A', r2(rem * 0.09)]],
+      hist: [[ing, 'Ingreso · ' + cond.toLowerCase()], ...(G.int(r, 0, 1) ? [['0' + G.int(r, 1, 7) + '/0' + G.int(r, 1, 7) + '/2026', G.pick(r, ['Actualización de cuenta bancaria', 'Cambio de sistema de pensiones', 'Rotación de dependencia', 'Actualización de grado académico'])]] : [])] });
+  });
+  const W = c => { const t = P.trabajadores.find(x => x.cargo === c); return t.cod + ' · ' + t.cargo; }, RG = c => P.trabajadores.find(x => x.cargo === c).reg;
+  [['Especialista en presupuesto', '07/09/2026 – 21/09/2026', 15, 'Programada'], ['Analista de sistemas', '28/09/2026 – 12/10/2026', 15, 'Programada'], ['Técnico en contabilidad', '13/07/2026 – 27/07/2026', 15, 'Gozada'],
+   ['Secretaria ejecutiva', '03/08/2026 – 17/08/2026', 15, 'Gozada'], ['Chofer', '05/10/2026 – 03/11/2026', 30, 'Programada'], ['Técnico pecuario', '16/11/2026 – 30/11/2026', 15, 'Programada']].forEach(v => P.vacaciones.push([W(v[0]), RG(v[0]), v[1], v[2], v[3]]));
+  [['Analista de sistemas', 'Licencia con goce · capacitación oficializada', '24/08/2026 – 28/08/2026', 'Solicitada'], ['Técnico pecuario', 'Licencia por paternidad', '20/08/2026 – 08/09/2026', 'Solicitada'],
+   ['Secretaria ejecutiva', 'Licencia por fallecimiento de familiar', '05/08/2026 – 09/08/2026', 'Aprobada'], ['Técnico en contabilidad', 'Permiso por onomástico', '21/08/2026', 'Aprobada'], ['Chofer', 'Licencia por salud (CITT)', '15/08/2026 – 22/08/2026', 'En curso']].forEach(v => P.licencias.push([W(v[0]), v[1], v[2], v[3]]));
+  P.asistencia.push(['Oficina de Contabilidad', 18, 3, 0, 14.2], ['Dirección General de Administración', 26, 4, 1, 58.9], ['Oficina de Tecnologías de la Información', 15, 1, 0, 3.8], ['Planta Piloto de Lácteos', 21, 7, 2, 132.4], ['Biblioteca Central', 12, 2, 0, 8.1], ['Unidad de Servicios Generales', 48, 12, 3, 214.7]);
+})();

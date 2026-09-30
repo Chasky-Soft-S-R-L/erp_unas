@@ -49,3 +49,45 @@ SIGA.data.tesoreria = {
     ['J. Ruiz · locador de servicios', '10458830211', '0003-0200-0003321187-45', 3220.00]
   ]
 };
+
+/* Ampliación de la muestra: comprobantes de pago de agosto (C/P 0590–0609) y sus cheques */
+(function () {
+  const T = SIGA.data.tesoreria, G = SIGA.gen, r = G.rng(4040);
+  const BEN = [
+    ['Seguridad Integral Huallaga SAC', '20571123409', 'Servicio de vigilancia y seguridad · julio', 'Demás servicios gravados con el IGV', 52000, 58000],
+    ['Distribuidora Agropecuaria del Huallaga SAC', '20489217701', 'Alimento balanceado para la Granja Porcina', 'No sujeto a detracción', 6000, 19000],
+    ['Comercial Ferretera Tingo María SRL', '20601188342', 'Materiales de construcción · mantenimiento de aulas', 'No sujeto a detracción', 1800, 9500],
+    ['Transportes León de Huánuco EIRL', '20542213380', 'Transporte de bienes Lima–Tingo María', 'Servicio de transporte de bienes', 1200, 4800],
+    ['Electro Oriente SA', '20103795631', 'Suministro de energía eléctrica · julio', 'No sujeto a detracción', 38000, 52000],
+    ['EPS Seda Huánuco SA', '20146037201', 'Servicio de agua potable y alcantarillado · julio', 'No sujeto a detracción', 7200, 9800],
+    ['Telefónica del Perú SAA', '20100017491', 'Internet dedicado 500 Mbps · julio', 'No sujeto a detracción', 8400, 8400],
+    ['Imprenta Selva SAC', '20603321551', 'Impresión de prospectos de admisión 2026-II', 'Demás servicios gravados con el IGV', 3500, 12000],
+    ['AgroVet Selva SAC', '20600932115', 'Medicamentos veterinarios para el plantel', 'No sujeto a detracción', 900, 5200],
+    ['Consultora Ambiental Amazonía EIRL', '20600871124', 'Monitoreo ambiental de la planta de tratamiento', 'Demás servicios gravados con el IGV', 6000, 14000],
+    ['Mantenimiento Industrial Selva SAC', '20602233419', 'Mantenimiento de tractor agrícola y motocultor', 'Mantenimiento y reparación de bienes muebles', 2400, 7800],
+    ['Combustibles del Oriente SAC', '20603945211', 'Combustible para maquinaria y vehículos', 'No sujeto a detracción', 4200, 11800],
+    ['A. Chávez · locador de servicios', '10467712093', 'Servicios profesionales de asesoría legal · RH E001-18', 'No sujeto a detracción', 3200, 3200],
+    ['R. Pinedo · locador de servicios', '10722210981', 'Apoyo administrativo en Mesa de Partes · RH E001-07', 'No sujeto a detracción', 1400, 1400]
+  ];
+  const nums = [609, 608, 606, 605, 604, 603, 602, 601, 600, 599, 598, 597, 596, 595, 594, 593, 592, 591, 590];
+  let ch = 8898;
+  nums.forEach((n, i) => {
+    const doc = 'C/P 2026-' + G.pad(n, 4), dia = n >= 608 ? 229 : 226 - Math.floor((606 - n) / 1.5);
+    let row;
+    if (n === 598) row = { doc, fecha: G.fecha(r, dia, dia), benef: 'Planilla de pensionistas D.L. 20530 · agosto 2026 (212 pensionistas)', ruc: '—', concepto: 'Pensiones del régimen 20530', medio: 'Abono masivo', ref: 'Lote 00209', bruto: 684300, detr: 0, ret: 0, neto: 684300 };
+    else if (n === 591) row = { doc, fecha: G.fecha(r, dia, dia), benef: 'SUNAT · tributos retenidos de julio', ruc: '20131312955', concepto: 'PDT PLAME 0601 · renta 4.ª y 5.ª, ONP, EsSalud', medio: 'Carta orden', ref: 'NPS 1180044213', bruto: 182640, detr: 0, ret: 0, neto: 182640 };
+    else {
+      const b = BEN[i % BEN.length], rh = b[1].startsWith('10'), bruto = G.amt(r, b[4], b[5], 10);
+      const pd = rh || bruto <= 700 ? 0 : (T.spot.find(s => s[0] === b[3]) || [0, 0])[1];
+      const detr = Math.round(bruto * pd) / 100, ret = rh && bruto > 1500 ? Math.round(bruto * 8) / 100 : 0;
+      const medio = rh || i % 5 === 3 ? 'Cheque' : 'Abono CCI';
+      row = { doc, fecha: G.fecha(r, dia, dia), benef: b[0], ruc: b[1], concepto: b[2], medio, ref: medio === 'Cheque' ? 'Cheque •••' + (ch--) : 'CCI •••' + G.int(r, 1000, 9999), bruto, detr, ret, neto: Math.round((bruto - detr - ret) * 100) / 100, spot: pd ? b[3] : undefined };
+    }
+    row.estado = n === 608 ? 'Girado' : n === 596 ? 'Anulado' : 'Pagado';
+    row.user = 'K. Ramos'; if (row.estado === 'Pagado') row.aprob = 'L. Vargas';
+    if (row.estado === 'Anulado') { row.anulado = true; row.motivo = 'CCI del beneficiario observado por el banco · se reemite'; }
+    T.cp.push(row);
+    if (row.medio === 'Cheque') T.cheques.push({ num: row.ref.replace('Cheque ', ''), fecha: row.fecha, benef: row.benef, monto: row.neto, estado: row.estado === 'Pagado' ? 'Cobrado' : row.estado === 'Anulado' ? 'Anulado' : 'Entregado', cp: doc });
+  });
+  T.cp.sort((a, b) => b.doc.localeCompare(a.doc));
+})();

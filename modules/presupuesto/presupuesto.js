@@ -53,6 +53,35 @@
     return null;
   };
 
+  const dtbl = (head, rows) => `<table class="doc-tbl"><thead><tr>${head.map(h => `<th class="${h[1] ? 'r' : ''}">${h[0]}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${r.map((c, i) => `<td class="${head[i][1] ? 'r' : ''}">${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+  const P = () => SIGA.modules.presupuesto;
+  const certRec = SIGA.recs.cert = {
+    mod: 'Presupuesto', tipo: 'Certificación de crédito presupuestario', office: 'Oficina de Planificación y Presupuesto', key: c => 'CCP ' + c.num, title: c => 'Certificación N° ' + c.num, estado: 'fase', cls: false, anuladoValor: 'Anulada',
+    view: c => P().verCert(c),
+    fields: c => { const U = SIGA.ui, m = api.marco(c.marco); return [['Certificado', `<span class="code">${c.num}</span>`], ['Expediente', c.exp], ['Fecha', c.fecha], ['Monto', U.money(c.monto)], ['Centro de costo', m.ccn + ' · ' + m.cc, 1], ['Fuente · Meta', m.fte + ' · ' + api.fuente(m.fte).nom + ' · ' + m.meta], ['Clasificador', m.clasif + ' ' + m.desc], ['Fase', U.tag(c.fase, FCLS[c.fase])], ['Registró / Aprobó', c.user + ' / ' + (c.aprob || '—')], ['Justificación', U.esc(c.just || '—'), 1]]; },
+    edit: [{ k: 'just', label: 'Justificación', type: 'textarea' }], canEdit: c => c.fase === 'Pendiente de aprobación',
+    anular: true, anularLabel: 'Anular certificación', canAnular: c => ['Pendiente de aprobación', 'Certificado'].includes(c.fase),
+    onAnular: (c, mot) => { const m = api.marco(c.marco); if (c.aprob) { SIGA.siaf('Anulación de certificación', 'CCP ' + c.num, -c.monto); D.fases.cert -= c.monto; api.fuente(m.fte).cert -= c.monto; } c.motivo = mot; },
+    extra: c => [
+      ...(c.fase === 'Pendiente de aprobación' ? [{ icon: 'fa-stamp', label: 'Aprobar (Jefe de P&P)', fn: x => P().aprobar(x) }] : []),
+      ...(!['Pendiente de aprobación', 'Pagado', 'Anulada'].includes(c.fase) ? [{ icon: 'fa-forward-step', label: 'Pasar a ' + FASES[FASES.indexOf(c.fase) + 1], fn: x => P().avanzar(x) }] : []),
+      ...(c.fase === 'Certificado' ? [{ icon: 'fa-scissors', label: 'Rebaja parcial (libera saldo)', fn: x => P().rebaja(x) }] : []),
+      { icon: 'fa-route', label: 'Ver expediente', menuOnly: true, fn: x => { SIGA.ui.closeModal(); SIGA.go('expediente'); setTimeout(() => SIGA.modules.expediente.ver(x.exp), 60); } }
+    ],
+    print: c => { const U = SIGA.ui, m = api.marco(c.marco), it = c.items || []; return { tipo: 'Certificación de crédito presupuestario', num: c.num, fecha: 'Ejercicio 2026 · ' + c.fecha,
+      pairs: [['Unidad ejecutora', '001 · Universidad Nacional Agraria de la Selva'], ['Expediente SIAF', c.siaf || 'por transmitir'], ['Centro de costo', m.cc + ' · ' + m.ccn, 1], ['Fuente de financiamiento', m.fte + ' · ' + api.fuente(m.fte).nom], ['Meta', m.meta], ['Clasificador de gasto', m.clasif + ' · ' + m.desc, 1], ['Fase', c.fase], ['Justificación', U.esc(c.just || '—'), 1]],
+      body: (it.length ? dtbl([['Código'], ['Descripción'], ['U.M.'], ['Cant.', 1], ['P. unit.', 1], ['Total', 1]], it.map(r => [r[0], U.esc(r[1]), r[2], r[3], U.money(r[4], ''), U.money(r[3] * r[4], '')])) : '') + dtbl([['Concepto'], ['Importe S/', 1]], [['Monto certificado', '<b>' + U.money(c.monto, '') + '</b>'], ['Saldo de la específica luego de certificar', U.money(api.saldo(m), '')]]) + `<p class="mini">${U.montoLetras(c.monto)}</p>`,
+      firmas: [['Registró', c.user], ['Aprobó', c.aprob || 'Jefe de P&P'], ['V.º B.º', 'Dirección General de Administración']] }; }
+  };
+  const notaRec = {
+    mod: 'Presupuesto', tipo: 'Nota modificatoria', office: 'Oficina de Planificación y Presupuesto', key: r => r.n, cls: false,
+    fields: r => { const U = SIGA.ui; return [['Nota', `<span class="code">${r.n}</span>`], ['Fecha', r.fecha], ['Tipo', U.tag(r.tipo, r.tipoCls)], ['Fuente', r.fte + ' · ' + (api.fuente(r.fte) || {}).nom], ['Concepto', U.esc(r.concepto), 1], ['Habilita', U.money(r.hab)], ['Anula', U.money(r.anu)], ['Efecto en el PIM', U.money(r.hab - r.anu)], ['Estado', U.tag(r.estado, r.estado === 'Aprobada' ? 't-green' : 't-gray')]]; },
+    edit: [{ k: 'concepto', label: 'Concepto' }], canEdit: r => !r.auto,
+    anular: true, anularLabel: 'Anular nota (revierte el marco)', canAnular: r => !r.auto && r.estado === 'Aprobada' && r.fecha === SIGA.ctx.hoy,
+    onAnular: r => { const f = api.fuente(r.fte); f.pim -= r.hab - r.anu; D.genericas[0].pim -= r.hab - r.anu; SIGA.siaf('Anulación de nota modificatoria', r.n, -(r.hab - r.anu)); },
+    print: r => ({ tipo: 'Nota modificatoria presupuestaria', num: r.n, body: dtbl([['Fuente'], ['Concepto'], ['Habilita', 1], ['Anula', 1]], [[r.fte, SIGA.ui.esc(r.concepto), SIGA.ui.money(r.hab, ''), SIGA.ui.money(r.anu, '')]]), firmas: [['Elaboró', 'Analista de Presupuesto'], ['Aprobó', 'M. Ríos · Jefe de P&P'], ['Autoriza', 'Titular del pliego']] })
+  };
+
   SIGA.registerModule('presupuesto', {
     title: 'Presupuesto', icon: 'fa-file-invoice-dollar', group: 'Planificación y Presupuesto', badge: 'SIAF',
     f: 'Todas',
@@ -111,26 +140,47 @@
     /* ---------------- Certificaciones ---------------- */
     paintCerts() {
       const U = SIGA.ui;
-      const rows = D.certificaciones.filter(c => this.f === 'Todas' || c.fase === this.f);
-      document.getElementById('p-tcert').innerHTML = U.table([
-        { k: 'num', label: 'N° CCP', render: r => `<span class="code">${r.num}</span>` },
-        { k: 'fecha', label: 'Fecha', cls: 'num' },
-        { k: 'cc', label: 'Centro de costo', render: r => { const m = api.marco(r.marco); return `${m.ccn}<div class="mini">${m.cc}</div>`; } },
-        { k: 'fte', label: 'Fte / Meta', render: r => { const m = api.marco(r.marco); return `${m.fte} · ${m.meta}`; } },
-        { k: 'clasif', label: 'Clasificador', render: r => `<span class="code">${api.marco(r.marco).clasif}</span>` },
-        { k: 'monto', label: 'Monto', r: true, render: r => U.money(r.monto) },
-        { k: 'fase', label: 'Fase', render: r => U.tag(r.fase, FCLS[r.fase]) },
-        { k: 'user', label: 'Registró / Aprobó', render: r => `<span class="mini">${r.user}${r.aprob ? ' / ' + r.aprob : ''}</span>` }
-      ], rows, {
-        onRow: c => this.verCert(c),
-        rowCls: r => r.fase === 'Anulada' ? 'row-warn' : '',
+      const rows = () => D.certificaciones.filter(c => this.f === 'Todas' || c.fase === this.f);
+      document.getElementById('p-tcert').innerHTML = U.grid({
+        id: 'ppto-cert', title: 'certificaciones', export: 'certificaciones_2026', rows, record: certRec, pageSize: 12,
+        filter: { label: 'Centro de costo', get: r => api.marco(r.marco).ccn },
+        cols: [
+          { k: 'num', label: 'N° CCP', render: r => `<span class="code">${r.num}</span>` },
+          { k: 'fecha', label: 'Fecha', cls: 'num', sv: r => r.fecha.split('/').reverse().join('') },
+          { k: 'cc', label: 'Centro de costo', render: r => { const m = api.marco(r.marco); return `${m.ccn}<div class="mini">${m.cc}</div>`; }, csv: r => api.marco(r.marco).ccn },
+          { k: 'fte', label: 'Fte / Meta', render: r => { const m = api.marco(r.marco); return `${m.fte} · ${m.meta}`; } },
+          { k: 'clasif', label: 'Clasificador', render: r => `<span class="code">${api.marco(r.marco).clasif}</span>` },
+          { k: 'monto', label: 'Monto', r: true, render: r => U.money(r.monto) },
+          { k: 'fase', label: 'Fase', render: r => U.tag(r.fase, FCLS[r.fase]) },
+          { k: 'user', label: 'Registró / Aprobó', render: r => `<span class="mini">${r.user}${r.aprob ? ' / ' + r.aprob : ''}</span>` }
+        ],
+        rowCls: r => (r.fase === 'Anulada' ? 'row-void' : '') + (r.nuevo ? ' row-new' : ''),
         actions: [
           { icon: 'fa-stamp', title: 'Aprobar (Jefe de P&P)', show: r => r.fase === 'Pendiente de aprobación', fn: c => this.aprobar(c) },
           { icon: 'fa-forward-step', title: 'Avanzar a la siguiente fase', show: r => r.fase !== 'Pendiente de aprobación' && r.fase !== 'Pagado' && r.fase !== 'Anulada', fn: c => this.avanzar(c) },
-          { icon: 'fa-eye', title: 'Ver', fn: c => this.verCert(c) },
-          { icon: 'fa-ban', title: 'Anular (operación inversa)', cls: 'del', show: r => ['Pendiente de aprobación', 'Certificado'].includes(r.fase), fn: c => this.anular(c) }
-        ]
+          { icon: 'fa-print', title: 'Imprimir certificado', fn: c => U.rec(certRec).imprimir(c) }
+        ],
+        tools: [{ icon: 'fa-plus', label: 'Nueva certificación', primary: true, fn: () => this.nueva() }],
+        bulk: [
+          { icon: 'fa-stamp', label: 'Aprobar pendientes', fn: rs => { const x = rs.filter(c => c.fase === 'Pendiente de aprobación'); if (!x.length) { U.toast('No hay certificaciones pendientes en la selección', 'info'); return; } if (!SIGA.sod(null, 'cert.aprobar')) return; const ok = x.filter(c => c.user !== SIGA.ctx.user.nombre); ok.forEach(c => this.aprobar(c, true)); U.toast(ok.length + ' certificaciones aprobadas y enviadas al SIAF' + (x.length > ok.length ? ' · ' + (x.length - ok.length) + ' excluidas por segregación de funciones' : '')); SIGA.refresh(); } },
+          { icon: 'fa-print', label: 'Imprimir certificados', fn: rs => U.preview('Certificaciones · ' + rs.length, rs.map(c => U.doc(Object.assign({ office: certRec.office }, certRec.print(c)))).join('<div class="pg-break"></div>'), { file: 'certificaciones_lote' }) }
+        ],
+        foot: rs => `<tr><td colspan="6" class="r"><b>Total vigente (${rs.filter(vigente).length})</b></td><td class="r num"><b>${U.money(rs.filter(vigente).reduce((s, c) => s + c.monto, 0))}</b></td><td colspan="4"></td></tr>`
       });
+    },
+    rebaja(c) {
+      const U = SIGA.ui, m = api.marco(c.marco);
+      U.formModal('<i class="fa-solid fa-scissors"></i> Rebaja de certificación · CCP ' + c.num, [
+        { k: 'act', label: 'Monto certificado', value: U.money(c.monto), ro: true, span: 1 }, { k: 'reb', label: 'Monto a rebajar S/', type: 'number', value: Math.round(c.monto * 0.1), span: 1 },
+        { k: 'mot', label: 'Sustento', type: 'textarea', value: 'Menor valor adjudicado respecto del valor estimado' }
+      ], v => {
+        const r = parseFloat(v.reb) || 0;
+        if (r <= 0 || r >= c.monto) { U.toast('La rebaja debe ser mayor que cero y menor al monto certificado', 'err'); return; }
+        const antes = api.saldo(m); c.monto = Math.round((c.monto - r) * 100) / 100; D.fases.cert -= r; api.fuente(m.fte).cert -= r;
+        SIGA.siaf('Rebaja de certificación', 'CCP ' + c.num, -r);
+        SIGA.log('Presupuesto', 'Rebaja de certificación', 'CCP ' + c.num, 'Saldo ' + U.money(antes), 'Saldo ' + U.money(api.saldo(m)) + ' · ' + v.mot);
+        U.closeModal(); U.toast(`CCP ${c.num} rebajada en ${U.money(r)} · saldo liberado en ${m.id}`); SIGA.refresh();
+      }, 'Rebajar y liberar saldo');
     },
     verCert(c) {
       const U = SIGA.ui, m = api.marco(c.marco), idx = FASES.indexOf(c.fase);
@@ -144,16 +194,20 @@
       const b = U.modal('Certificación de crédito presupuestario N° ' + c.num, body,
         `<button class="btn ghost" data-close>Cerrar</button>
          <button class="btn ghost" id="cv-exp"><i class="fa-solid fa-route"></i> Ver expediente</button>
+         <button class="btn ghost" id="cv-hist"><i class="fa-solid fa-clock-rotate-left"></i> Historial</button>
+         ${['Pendiente de aprobación', 'Certificado'].includes(c.fase) ? '<button class="btn danger" id="cv-an"><i class="fa-solid fa-ban"></i> Anular</button>' : ''}
          ${c.fase === 'Pendiente de aprobación' ? '<button class="btn" id="cv-apr"><i class="fa-solid fa-stamp"></i> Aprobar</button>' : ''}
          ${!['Pendiente de aprobación', 'Pagado', 'Anulada'].includes(c.fase) ? `<button class="btn" id="cv-av"><i class="fa-solid fa-forward-step"></i> Pasar a ${FASES[idx + 1]}</button>` : ''}
          <button class="btn sec" id="cv-print"><i class="fa-solid fa-print"></i> Imprimir</button>`, 'wide');
-      b.querySelector('#cv-print').addEventListener('click', () => U.toast('Certificado ' + c.num + ' enviado a impresión con firma digital'));
+      b.querySelector('#cv-print').addEventListener('click', () => U.rec(certRec).imprimir(c));
       b.querySelector('#cv-exp').addEventListener('click', () => { U.closeModal(); SIGA.go('expediente'); setTimeout(() => SIGA.modules.expediente.ver(c.exp), 60); });
       b.querySelector('#cv-apr')?.addEventListener('click', () => { U.closeModal(); this.aprobar(c); });
+      b.querySelector('#cv-hist').addEventListener('click', () => U.rec(certRec).historial(c));
+      b.querySelector('#cv-an')?.addEventListener('click', () => U.rec(certRec).anular(c));
       b.querySelector('#cv-av')?.addEventListener('click', () => { U.closeModal(); this.avanzar(c); });
     },
-    aprobar(c) {
-      if (!SIGA.sod(c.user, 'cert.aprobar')) return;
+    aprobar(c, silent) {
+      if (!silent && !SIGA.sod(c.user, 'cert.aprobar')) return;
       const U = SIGA.ui, m = api.marco(c.marco);
       c.fase = 'Certificado'; c.aprob = SIGA.ctx.user.nombre;
       const msg = SIGA.siaf('Certificación', 'CCP ' + c.num, c.monto);
@@ -162,6 +216,7 @@
       api.bump('Certificado', c.monto, m);
       SIGA.exp?.stage(c.exp, 'cert', 'CCP ' + c.num, 'Aprobada por ' + SIGA.ctx.user.nombre);
       SIGA.log('Presupuesto', 'Aprobación de certificación', 'CCP ' + c.num, 'Pendiente de aprobación', 'Certificado');
+      if (silent) return;
       U.toast(`CCP ${c.num} aprobada · enviada al SIAF-SP sin re-digitación`);
       SIGA.refresh();
     },
@@ -180,22 +235,13 @@
       U.toast(`CCP ${c.num} → <b>${nf}</b>${a ? ' · asiento contable ' + a + ' generado' : ''} · SIAF actualizado`);
       SIGA.refresh();
     },
-    anular(c) {
-      const U = SIGA.ui;
-      U.confirm(`¿Anular la certificación <b>${c.num}</b> por ${U.money(c.monto)}?<br><span class="mini">No se elimina: se registra una operación inversa y el saldo vuelve a la específica.</span>`, () => {
-        const m = api.marco(c.marco), antes = api.saldo(m);
-        const fase = c.fase; c.fase = 'Anulada';
-        if (fase === 'Certificado') { SIGA.siaf('Anulación de certificación', 'CCP ' + c.num, -c.monto); D.fases.cert -= c.monto; api.fuente(m.fte).cert -= c.monto; }
-        SIGA.log('Presupuesto', 'Anulación (operación inversa)', 'CCP ' + c.num, 'Saldo ' + U.money(antes), 'Saldo ' + U.money(api.saldo(m)));
-        U.toast('Certificación ' + c.num + ' anulada · saldo restituido', 'err'); SIGA.refresh();
-      }, 'Anular');
-    },
+    anular(c) { SIGA.ui.rec(certRec).anular(c); },
 
-    nueva() {
+    nueva(mid) {
       const U = SIGA.ui, cat = D.catalogo;
       const opts = D.marco.map(m => api.label(m) + ' — saldo ' + U.money(api.saldo(m)));
       const findM = v => api.marco(String(v || '').split(' · ')[0]);
-      const def = opts.find(o => o.startsWith('M09'));
+      const def = opts.find(o => o.startsWith((mid || 'M09') + ' '));
       const tot = rows => rows.reduce((s, r) => s + (parseFloat(r.cant) || 0) * (parseFloat(r.precio) || 0), 0);
       const cadena = m => ({ cc: m.cc + ' · ' + m.ccn, fte: m.fte + ' · ' + api.fuente(m.fte).nom, meta: m.meta, clasif: m.clasif + ' · ' + m.desc, fin: '00' + (500 + +m.meta.slice(-2)) });
       const c0 = cadena(findM(def));
@@ -280,17 +326,25 @@
     /* ---------------- Marco y saldos ---------------- */
     paintMarco() {
       const U = SIGA.ui;
-      document.getElementById('p-marco').innerHTML = U.table([
+      const mRec = { mod: 'Presupuesto', tipo: 'Marco presupuestal por específica', office: 'Oficina de Planificación y Presupuesto', key: r => r.id, title: r => 'Específica ' + r.id + ' · ' + r.clasif, cls: false, view: m => this.verMarco(m),
+        fields: m => [['Llave', m.id], ['Centro de costo', m.ccn + ' · ' + m.cc, 1], ['Fuente · Meta', m.fte + ' · ' + m.meta], ['Clasificador', m.clasif + ' ' + m.desc], ['PIM', U.money(m.pim)], ['Certificado', U.money(api.certificado(m))], ['Saldo', U.money(api.saldo(m))]],
+        extra: m => [{ icon: 'fa-plus', label: 'Certificar con esta específica', fn: x => { U.closeModal(); this.nueva(x.id); } }, { icon: 'fa-file-pen', label: 'Nota modificatoria', fn: () => { U.closeModal(); this.nuevaNota(); } }],
+        print: m => ({ tipo: 'Reporte de disponibilidad presupuestal', num: m.id, body: dtbl([['CCP'], ['Fecha'], ['Justificación'], ['Fase'], ['Monto', 1]], D.certificaciones.filter(c => c.marco === m.id).map(c => [c.num, c.fecha, U.esc(c.just || ''), c.fase, U.money(c.monto, '')])) + dtbl([['Concepto'], ['Importe', 1]], [['PIM', U.money(m.pim, '')], ['Certificado histórico', U.money(m.hist, '')], ['Certificaciones del periodo', U.money(api.certificado(m) - m.hist, '')], ['<b>Saldo disponible</b>', '<b>' + U.money(api.saldo(m), '') + '</b>']]) }) };
+      document.getElementById('p-marco').innerHTML = U.grid({ id: 'ppto-marco', title: 'marco presupuestal', export: 'marco_presupuestal', rows: D.marco, record: mRec, pageSize: 15,
+        filter: { label: 'Fuente', get: r => r.fte + ' · ' + FTE[r.fte] },
+        cols: [
         { k: 'id', label: 'Llave', render: r => `<span class="code">${r.id}</span>` },
         { k: 'fte', label: 'Fte', render: r => r.fte + ' · ' + FTE[r.fte] }, { k: 'meta', label: 'Meta' },
         { k: 'ccn', label: 'Centro de costo', render: r => `${r.ccn}<div class="mini">${r.cc}</div>` },
         { k: 'clasif', label: 'Clasificador', render: r => `<span class="code">${r.clasif}</span><div class="mini">${r.desc}</div>` },
         { k: 'pim', label: 'PIM', r: true, render: r => U.money(r.pim, '') },
-        { k: 'cert', label: 'Certificado', r: true, render: r => U.money(api.certificado(r), '') },
-        { k: 'saldo', label: 'Saldo', r: true, render: r => { const s = api.saldo(r); return `<b class="${s < 0 ? 'saldo-neg' : 'saldo-pos'}">${U.money(s, '')}</b>`; } },
-        { k: 'uso', label: 'Uso', render: r => { const p = api.certificado(r) / r.pim * 100; return `<div class="mcell">${U.meter(Math.min(100, p), p > 100 ? 'var(--danger)' : p > 95 ? '#d97706' : p > 80 ? 'var(--warning)' : 'var(--primary)')}<span>${p.toFixed(0)}%</span></div>`; } },
-        { k: 'sem', label: 'Semáforo', render: r => U.sem(api.saldo(r), r.pim) + (r.heredado ? `<div class="mini">heredado</div>` : '') }
-      ], D.marco, { rowCls: r => api.saldo(r) < 0 ? 'row-bad' : '', onRow: m => this.verMarco(m) });
+        { k: 'cert', label: 'Certificado', r: true, sv: r => api.certificado(r), render: r => U.money(api.certificado(r), '') },
+        { k: 'saldo', label: 'Saldo', r: true, sv: r => api.saldo(r), render: r => { const s = api.saldo(r); return `<b class="${s < 0 ? 'saldo-neg' : 'saldo-pos'}">${U.money(s, '')}</b>`; } },
+        { k: 'uso', label: 'Uso', sv: r => api.certificado(r) / r.pim, render: r => { const p = api.certificado(r) / r.pim * 100; return `<div class="mcell">${U.meter(Math.min(100, p), p > 100 ? 'var(--danger)' : p > 95 ? '#d97706' : p > 80 ? 'var(--warning)' : 'var(--primary)')}<span>${p.toFixed(0)}%</span></div>`; } },
+        { k: 'sem', label: 'Semáforo', nosort: true, render: r => U.sem(api.saldo(r), r.pim) + (r.heredado ? `<div class="mini">heredado</div>` : '') }
+      ], rowCls: r => api.saldo(r) < 0 ? 'row-bad' : '',
+        actions: [{ icon: 'fa-plus', title: 'Certificar con esta específica', show: r => api.saldo(r) > 0, fn: m => this.nueva(m.id) }],
+        foot: rs => `<tr><td colspan="5" class="r"><b>Total</b></td><td class="r num"><b>${U.money(rs.reduce((s, m) => s + m.pim, 0), '')}</b></td><td class="r num"><b>${U.money(rs.reduce((s, m) => s + api.certificado(m), 0), '')}</b></td><td class="r num"><b>${U.money(rs.reduce((s, m) => s + api.saldo(m), 0), '')}</b></td><td colspan="3"></td></tr>` });
     },
     verMarco(m) {
       const U = SIGA.ui, certs = D.certificaciones.filter(c => c.marco === m.id);
@@ -368,17 +422,21 @@
             <button class="btn sm mt" id="cu-dga"><i class="fa-solid fa-magnifying-glass"></i> Ver ítems del centro de costo</button></div>
         </div>
         <div class="card"><h3><span class="dot"></span>Centros de costo con mayor asignación · programado, modificado y ejecutado <span class="grow">clic para ver ítems · alerta de desviación</span></h3><div id="cu-t"></div></div>`;
-      document.getElementById('cu-t').innerHTML = U.table([
+      const cenRec = { mod: 'Presupuesto', tipo: 'Cuadro de necesidades por centro de costo', key: r => r[0], title: r => r[1], cls: false, view: r => this.verCentro(r),
+        fields: r => [['Código', r[0]], ['Centro de costo', r[1], 1], ['Ítems', U.int(r[4])], ['Modificado', U.money(r[2])], ['Ejecutado', U.money(r[3])], ['Saldo', U.money(r[2] - r[3])], ['Avance', U.pct(r[3], r[2])]],
+        extra: r => r[3] / r[2] < 0.2 ? [{ icon: 'fa-bell', label: 'Notificar desviación al responsable', fn: x => { SIGA.log('Presupuesto', 'Alerta de desviación notificada', x[0], U.pct(x[3], x[2]), 'Notificado al responsable'); U.closeModal(); U.toast('Alerta de desviación enviada al responsable de ' + x[1]); } }] : [] };
+      document.getElementById('cu-t').innerHTML = U.grid({ id: 'ppto-cen', title: 'centros de costo', export: 'cuadro_necesidades_centros', rows: D.centros, record: cenRec, pageSize: 10,
+        filter: { label: 'Alerta', get: r => { const p = r[3] / r[2] * 100; return p < 20 ? 'Desviación crítica' : p < 50 ? 'Bajo ritmo' : 'En ritmo'; } },
+        cols: [
         { k: 0, label: 'Código', render: r => `<span class="code">${r[0]}</span>` }, { k: 1, label: 'Denominación' },
         { k: 4, label: 'Ítems', r: true, render: r => U.int(r[4]) },
         { k: 2, label: 'Modificado S/', r: true, render: r => U.money(r[2], '') }, { k: 3, label: 'Ejecutado S/', r: true, render: r => U.money(r[3], '') },
-        { k: 's', label: 'Saldo S/', r: true, render: r => U.money(r[2] - r[3], '') },
-        { k: 'a', label: 'Avance', render: r => { const p = r[3] / r[2] * 100; return `<div class="mcell">${U.meter(p)}<span>${p.toFixed(0)}%</span></div>`; } },
-        { k: 'al', label: 'Alerta', render: r => { const p = r[3] / r[2] * 100; return p < 20 ? U.tag('Desviación crítica', 't-red') : p < 50 ? U.tag('Bajo ritmo', 't-amber') : U.tag('En ritmo', 't-green'); } }
-      ], D.centros, {
-        onRow: r => this.verCentro(r),
-        foot: `<tr><td></td><td class="mini">Otros ${D.cuadro.centros - top.length} centros de costo</td><td class="r num">${U.int(D.cuadro.items - tIt)}</td><td class="r num">${U.money(oMod, '')}</td><td class="r num">${U.money(oEje, '')}</td><td class="r num">${U.money(oMod - oEje, '')}</td><td>${U.meter(oEje / oMod * 100)}</td><td></td></tr>
-          <tr><td></td><td style="font-weight:800">TOTAL INSTITUCIONAL</td><td class="r num" style="font-weight:700">${U.int(D.cuadro.items)}</td><td class="r num" style="font-weight:800">${U.money(pim, '')}</td><td class="r num" style="font-weight:800;color:var(--primary-dark)">${U.money(D.cuadro.ejecutado, '')}</td><td class="r num" style="font-weight:700">${U.money(pim - D.cuadro.ejecutado, '')}</td><td><b>${U.pct(D.cuadro.ejecutado, pim)}</b></td><td></td></tr>`
+        { k: 's', label: 'Saldo S/', r: true, sv: r => r[2] - r[3], render: r => U.money(r[2] - r[3], '') },
+        { k: 'a', label: 'Avance', sv: r => r[3] / r[2], render: r => { const p = r[3] / r[2] * 100; return `<div class="mcell">${U.meter(p)}<span>${p.toFixed(0)}%</span></div>`; } },
+        { k: 'al', label: 'Alerta', nosort: true, render: r => { const p = r[3] / r[2] * 100; return p < 20 ? U.tag('Desviación crítica', 't-red') : p < 50 ? U.tag('Bajo ritmo', 't-amber') : U.tag('En ritmo', 't-green'); } }
+      ],
+        foot: `<tr><td></td><td class="mini">Otros ${D.cuadro.centros - top.length} centros de costo</td><td class="r num">${U.int(D.cuadro.items - tIt)}</td><td class="r num">${U.money(oMod, '')}</td><td class="r num">${U.money(oEje, '')}</td><td class="r num">${U.money(oMod - oEje, '')}</td><td>${U.meter(oEje / oMod * 100)}</td><td colspan="2"></td></tr>
+          <tr><td></td><td style="font-weight:800">TOTAL INSTITUCIONAL</td><td class="r num" style="font-weight:700">${U.int(D.cuadro.items)}</td><td class="r num" style="font-weight:800">${U.money(pim, '')}</td><td class="r num" style="font-weight:800;color:var(--primary-dark)">${U.money(D.cuadro.ejecutado, '')}</td><td class="r num" style="font-weight:700">${U.money(pim - D.cuadro.ejecutado, '')}</td><td><b>${U.pct(D.cuadro.ejecutado, pim)}</b></td><td colspan="2"></td></tr>`
       });
       document.getElementById('cu-dga').addEventListener('click', () => this.verCentro(D.centros[1]));
     },
@@ -398,7 +456,8 @@
         { k: 'x', label: 'SIGA-U', render: r => r.saldo < 0 ? U.tag('Habría sido bloqueado', 't-red') : U.tag('Conforme', 't-green') }
       ], rows, { rowCls: r => r.saldo < 0 ? 'row-bad' : '' }) +
         `<div class="note warn mt"><i class="fa-solid fa-circle-exclamation"></i><div>Los valores negativos (−4,600.00 · −8.80 · −8.68 · −6.00) son ítems en los que se ejecutó <b>más de lo programado y modificado</b>. En el sistema actual la validación advierte pero no bloquea; en SIGA-U la transacción se revierte.</div></div>`,
-        `<button class="btn ghost" data-close>Cerrar</button><button class="btn sec" onclick="SIGA.ui.toast('Exportando cuadro de necesidades a Excel…')"><i class="fa-solid fa-file-excel"></i> Exportar</button>`, 'wide');
+        `<button class="btn ghost" data-close>Cerrar</button><button class="btn sec" id="cn-x"><i class="fa-solid fa-file-excel"></i> Exportar</button>`, 'wide')
+        .querySelector('#cn-x').addEventListener('click', () => U.csv('cuadro_necesidades_104.07.08.01', ['Código', 'Descripción', 'Und', 'Cant. prog.', 'Cant. ejec.', 'Programado', 'Ejecutado', 'Saldo'], rows.map(r => [r.cod, r.desc, r.um, r.cp, r.ce, r.prog.toFixed(2), r.ejec.toFixed(2), r.saldo.toFixed(2)])));
     },
 
     /* ---------------- Compromisos ---------------- */
@@ -413,35 +472,46 @@
             <p class="mini">El compromiso anual afecta el crédito de forma preventiva por el total del ejercicio; el mensual habilita la ejecución del mes. Ambos se validan contra la certificación previa y se transmiten al SIAF sin digitación.</p>
             <div class="checklist mt">${[['Validación contra certificación', 'compromiso ≤ certificado'], ['Distribución mensual', 'según programación'], ['Registro SIAF', 'por interfaz, con reintento'], ['Alerta de desvío', 'ejecutado < programado del mes']].map(x => `<div class="ck ok"><i class="fa-solid fa-circle-check"></i><span>${x[0]}</span><em>${x[1]}</em></div>`).join('')}</div></div></div>
         <div class="card"><h3><span class="dot"></span>Compromisos anuales vigentes <span class="grow">clic para ver la distribución mensual</span></h3><div id="cm-t"></div></div>`;
-      document.getElementById('cm-t').innerHTML = U.table([
-        { k: 'doc', label: 'Documento', render: r => `<span class="code">${r.doc}</span>` }, { k: 'desc', label: 'Objeto' }, { k: 'prov', label: 'Contratista' },
-        { k: 'anual', label: 'Compromiso anual', r: true, render: r => U.money(r.anual) },
-        { k: 'e', label: 'Ejecutado', r: true, render: r => U.money(r.meses.slice(0, r.ejec).reduce((s, x) => s + x, 0)) },
-        { k: 'p', label: 'Avance', render: r => { const p = r.meses.slice(0, r.ejec).reduce((s, x) => s + x, 0) / r.anual * 100; return `<div class="mcell">${U.meter(p, 'var(--secondary)')}<span>${p.toFixed(0)}%</span></div>`; } }
-      ], D.compromisos, {
-        onRow: c => {
+      const verComp = c => {
           const cells = c.meses.map((v, i) => `<div class="mini-card" style="${i < c.ejec ? 'border-color:rgba(26,187,156,.5);background:rgba(26,187,156,.05)' : i === c.ejec ? 'border-color:var(--secondary)' : ''}"><div class="lab">${M[i]}</div><div class="v" style="font-size:13px">${v ? U.int(v) : '—'}</div><div class="s">${i < c.ejec ? 'ejecutado' : i === c.ejec ? 'mes en curso' : 'programado'}</div></div>`).join('');
           const b = U.modal('Compromiso ' + c.doc + ' · distribución mensual', `<p class="mini mb">${c.desc} · ${c.prov}</p><div class="grid cols-6" style="gap:8px">${cells}</div>`,
-            `<button class="btn ghost" data-close>Cerrar</button><button class="btn" id="cm-reg"><i class="fa-solid fa-calendar-check"></i> Registrar compromiso mensual de ${M[c.ejec] || '—'}</button>`, 'wide');
-          b.querySelector('#cm-reg').addEventListener('click', () => {
+            `<button class="btn ghost" data-close>Cerrar</button><button class="btn ghost" id="cm-pr"><i class="fa-solid fa-print"></i> Imprimir</button>${c.ejec < 12 ? `<button class="btn" id="cm-reg"><i class="fa-solid fa-calendar-check"></i> Registrar compromiso mensual de ${M[c.ejec]}</button>` : ''}`, 'wide');
+          b.querySelector('#cm-pr').addEventListener('click', () => U.rec(cRec).imprimir(c));
+          b.querySelector('#cm-reg')?.addEventListener('click', () => regMes(c));
+      };
+      const regMes = c => {
             if (c.ejec >= 12) return; const v = c.meses[c.ejec]; c.ejec++;
             SIGA.siaf('Compromiso mensual', c.doc + ' · ' + M[c.ejec - 1], v); SIGA.log('Presupuesto', 'Compromiso mensual', c.doc, '—', M[c.ejec - 1] + ' ' + U.money(v));
             U.closeModal(); U.toast(`Compromiso mensual ${M[c.ejec - 1]} de ${c.doc} registrado y enviado al SIAF`); SIGA.refresh();
-          });
-        }
-      });
+      };
+      const cRec = { mod: 'Presupuesto', tipo: 'Compromiso anual', office: 'Oficina de Planificación y Presupuesto', key: r => r.doc, title: r => 'Compromiso ' + r.doc, cls: false, view: verComp,
+        fields: c => [['Documento', c.doc], ['Objeto', c.desc, 1], ['Contratista', c.prov, 1], ['Compromiso anual', U.money(c.anual)], ['Ejecutado', U.money(c.meses.slice(0, c.ejec).reduce((s, x) => s + x, 0))], ['Meses ejecutados', c.ejec + ' de 12']],
+        extra: c => c.ejec < 12 ? [{ icon: 'fa-calendar-check', label: 'Registrar compromiso mensual de ' + M[c.ejec], fn: regMes }] : [],
+        print: c => ({ tipo: 'Compromiso anual', num: c.doc, pairs: [['Objeto', U.esc(c.desc), 1], ['Contratista', U.esc(c.prov), 1], ['Compromiso anual', U.money(c.anual)]], body: dtbl([['Mes'], ['Programado', 1], ['Estado']], c.meses.map((v, i) => [M[i], U.money(v, ''), i < c.ejec ? 'Comprometido' : 'Programado'])) }) };
+      document.getElementById('cm-t').innerHTML = U.grid({ id: 'ppto-comp', title: 'compromisos', export: 'compromisos_anuales', rows: D.compromisos, record: cRec,
+        cols: [
+        { k: 'doc', label: 'Documento', render: r => `<span class="code">${r.doc}</span>` }, { k: 'desc', label: 'Objeto' }, { k: 'prov', label: 'Contratista' },
+        { k: 'anual', label: 'Compromiso anual', r: true, render: r => U.money(r.anual) },
+        { k: 'e', label: 'Ejecutado', r: true, sv: r => r.meses.slice(0, r.ejec).reduce((s, x) => s + x, 0), render: r => U.money(r.meses.slice(0, r.ejec).reduce((s, x) => s + x, 0)) },
+        { k: 'p', label: 'Avance', sv: r => r.meses.slice(0, r.ejec).reduce((s, x) => s + x, 0) / r.anual, render: r => { const p = r.meses.slice(0, r.ejec).reduce((s, x) => s + x, 0) / r.anual * 100; return `<div class="mcell">${U.meter(p, 'var(--secondary)')}<span>${p.toFixed(0)}%</span></div>`; } }
+      ],
+        actions: [{ icon: 'fa-calendar-check', title: 'Registrar compromiso mensual', show: r => r.ejec < 12, fn: regMes }],
+        foot: rs => `<tr><td colspan="3" class="r"><b>Total comprometido</b></td><td class="r num"><b>${U.money(rs.reduce((s, c) => s + c.anual, 0))}</b></td><td class="r num"><b>${U.money(rs.reduce((s, c) => s + c.meses.slice(0, c.ejec).reduce((a, x) => a + x, 0), 0))}</b></td><td colspan="2"></td></tr>` });
     },
 
     /* ---------------- Notas modificatorias ---------------- */
     paintNotas() {
       const U = SIGA.ui;
-      document.getElementById('p-tnotas').innerHTML = U.table([
-        { k: 'n', label: 'N° Nota', render: r => `<span class="code">${r.n}</span>` }, { k: 'fecha', label: 'Fecha', cls: 'num' },
+      document.getElementById('p-tnotas').innerHTML = U.grid({ id: 'ppto-notas', title: 'notas modificatorias', export: 'notas_modificatorias', rows: D.notas, record: notaRec,
+        filter: { label: 'Tipo', get: r => r.tipo },
+        cols: [
+        { k: 'n', label: 'N° Nota', render: r => `<span class="code">${r.n}</span>` }, { k: 'fecha', label: 'Fecha', cls: 'num', sv: r => r.fecha.split('/').reverse().join('') },
         { k: 'tipo', label: 'Tipo', render: r => U.tag(r.tipo, r.tipoCls) }, { k: 'fte', label: 'Fte' }, { k: 'concepto', label: 'Concepto' },
         { k: 'hab', label: 'Habilita', r: true, render: r => r.hab ? `<span class="saldo-pos">+${U.money(r.hab, '')}</span>` : '—' },
         { k: 'anu', label: 'Anula', r: true, render: r => r.anu ? `<span class="saldo-neg">−${U.money(r.anu, '')}</span>` : '—' },
         { k: 'estado', label: 'Estado', render: r => U.tag(r.estado, r.estado === 'Aprobada' ? 't-green' : 't-gray') + (r.auto ? ' ' + U.tag('automática', 't-teal') : '') }
-      ], D.notas, { foot: `<tr><td colspan="5" class="r" style="font-weight:700">PIA ${U.money(D.pia)} + modificaciones =</td><td colspan="2" class="r" style="font-weight:800;color:var(--primary-dark)">PIM ${U.money(api.pim())}</td><td></td></tr>` });
+      ], rowCls: r => r.anulado ? 'row-void' : '',
+        foot: `<tr><td colspan="5" class="r" style="font-weight:700">PIA ${U.money(D.pia)} + modificaciones =</td><td colspan="2" class="r" style="font-weight:800;color:var(--primary-dark)">PIM ${U.money(api.pim())}</td><td colspan="2"></td></tr>` });
     },
     nuevaNota() {
       const U = SIGA.ui;
@@ -478,19 +548,27 @@
       document.getElementById('p-pmi').innerHTML = `<div class="card mb"><h3><span class="dot"></span>Programación multianual de gastos 2027–2029 <span class="grow">P-01 · proyección a tres años por centro de costo</span></h3><div id="pm-t"></div></div>
         <div class="card"><h3><span class="dot"></span>Seguimiento del Plan Operativo Institucional (POI) <span class="grow">P-10 · avance físico vs financiero por meta</span></h3><div id="poi-t"></div>
         <p class="mini mt">Cuando el avance físico supera al financiero, la meta avanza con menos recursos de los asignados; cuando ocurre lo inverso, se gasta sin resultado proporcional. Ambas desviaciones se alertan.</p></div>`;
-      document.getElementById('pm-t').innerHTML = U.table([
+      const pmRec = { mod: 'Presupuesto', tipo: 'Programación multianual', key: r => 'PMG ' + r[0], title: r => r[1], cls: false,
+        fields: r => [['Centro de costo', r[0] + ' · ' + r[1], 1], ['PIM 2026', U.money(r[2])], ['2027', U.money(r[3])], ['2028', U.money(r[4])], ['2029', U.money(r[5])]],
+        edit: [3, 4, 5].map((i, j) => ({ k: 'a' + i, label: 'Proyección ' + (2027 + j) + ' S/', type: 'number', span: 1, get: r => r[i], set: (r, v) => r[i] = v })) };
+      document.getElementById('pm-t').innerHTML = U.grid({ id: 'ppto-pmg', title: 'programación multianual', export: 'programacion_multianual_2027_2029', rows: D.multianual, record: pmRec, search: false,
+        cols: [
         { k: 0, label: 'Código', render: r => `<span class="code">${r[0]}</span>` }, { k: 1, label: 'Centro de costo' },
         { k: 2, label: 'PIM 2026', r: true, render: r => U.money(r[2], '') }, { k: 3, label: '2027', r: true, render: r => U.money(r[3], '') },
         { k: 4, label: '2028', r: true, render: r => U.money(r[4], '') }, { k: 5, label: '2029', r: true, render: r => U.money(r[5], '') },
-        { k: 6, label: 'Var. 2027', r: true, render: r => { const p = (r[3] / r[2] - 1) * 100; return `<span class="${p < 0 ? 'saldo-neg' : 'saldo-pos'}">${p > 0 ? '+' : ''}${p.toFixed(1)}%</span>`; } }
-      ], D.multianual);
-      document.getElementById('poi-t').innerHTML = U.table([
+        { k: 6, label: 'Var. 2027', r: true, sv: r => r[3] / r[2], render: r => { const p = (r[3] / r[2] - 1) * 100; return `<span class="${p < 0 ? 'saldo-neg' : 'saldo-pos'}">${p > 0 ? '+' : ''}${p.toFixed(1)}%</span>`; } }
+      ], foot: rs => `<tr><td colspan="2" class="r"><b>Total</b></td>${[2, 3, 4, 5].map(i => `<td class="r num"><b>${U.money(rs.reduce((s, r) => s + r[i], 0), '')}</b></td>`).join('')}<td colspan="2"></td></tr>` });
+      const poiRec = { mod: 'Presupuesto', tipo: 'Seguimiento POI', key: r => r[0], title: r => r[0] + ' · ' + r[1], cls: false,
+        fields: r => [['Actividad operativa', r[0] + ' · ' + r[1], 1], ['Meta presupuestal', r[2]], ['Unidad de medida', r[3]], ['Meta física anual', U.int(r[4])], ['Avance físico', U.int(r[5]) + ' (' + r[6] + '%)'], ['Avance financiero', r[7] + '%']],
+        edit: [{ k: 'av', label: 'Avance físico acumulado', type: 'number', span: 1, get: r => r[5], set: (r, v) => { r[5] = v; r[6] = Math.round(v / r[4] * 100); } }] };
+      document.getElementById('poi-t').innerHTML = U.grid({ id: 'ppto-poi', title: 'POI', export: 'seguimiento_poi', rows: D.poi, record: poiRec, search: false,
+        cols: [
         { k: 0, label: 'Actividad operativa', render: r => `<span class="code">${r[0]}</span><div>${r[1]}</div>` }, { k: 2, label: 'Meta' }, { k: 3, label: 'Unidad de medida' },
         { k: 4, label: 'Meta física', r: true, render: r => U.int(r[4]) }, { k: 5, label: 'Avance', r: true, render: r => U.int(r[5]) },
         { k: 6, label: '% físico', render: r => `<div class="mcell">${U.meter(r[6], 'var(--secondary)')}<span>${r[6]}%</span></div>` },
         { k: 7, label: '% financiero', render: r => `<div class="mcell">${U.meter(r[7], 'var(--primary)')}<span>${r[7]}%</span></div>` },
-        { k: 8, label: 'Señal', render: r => Math.abs(r[6] - r[7]) > 25 ? U.tag('Desalineado', 't-amber') : U.tag('Alineado', 't-green') }
-      ], D.poi);
+        { k: 8, label: 'Señal', sv: r => Math.abs(r[6] - r[7]), render: r => Math.abs(r[6] - r[7]) > 25 ? U.tag('Desalineado', 't-amber') : U.tag('Alineado', 't-green') }
+      ], actions: [{ icon: 'fa-pen', title: 'Registrar avance físico', fn: r => U.rec(poiRec).editar(r) }] });
     },
 
     /* ---------------- Conciliación con el SIAF ---------------- */
@@ -537,13 +615,13 @@
       document.getElementById('ev-gen').addEventListener('click', () => {
         const low = rows.slice().sort((a, b) => a.p / a.meta - b.p / b.meta)[0];
         const tot = rows.reduce((s, r) => s + r.e, 0), pim = rows.reduce((s, r) => s + r.pim, 0);
-        U.modal('Informe de evaluación presupuestaria · I semestre 2026', `<div class="doc" style="position:static">
+        U.preview('Informe de evaluación presupuestaria · I semestre 2026', `<div class="doc" style="position:static">
           <div class="doc-head"><div class="inst"><div class="seal">U</div><div><b>Universidad Nacional Agraria de la Selva</b><span>Oficina de Planificación y Presupuesto</span></div></div><div class="doc-num"><div class="tp">Evaluación presupuestaria</div><div class="nn">I-2026</div><div class="yr">Generado ${U.now()}</div></div></div>
           <p style="font-size:11.5px;margin-bottom:10px"><b>1. Resumen.</b> Al cierre del primer semestre el pliego ejecutó ${U.money(tot)} de un PIM de ${U.money(pim)} (${U.pct(tot, pim)}). La genérica con menor eficacia es <b>${low.g}</b> (${low.p.toFixed(1)}% frente a una meta de ${low.meta}%), explicada principalmente por el bajo avance de la Unidad Ejecutora de Inversiones (6% en el cuadro de necesidades).</p>
           <p style="font-size:11.5px;margin-bottom:10px"><b>2. Recomendaciones.</b> (a) Priorizar el seguimiento semanal de las obras con certificación vigente; (b) reprogramar los saldos de los centros con avance menor al 20%; (c) mantener el control preventivo de disponibilidad, que en el periodo no registró sobregiros nuevos.</p>
           <table class="doc-tbl"><thead><tr><th>Genérica</th><th class="r">PIM</th><th class="r">Ejecución</th><th class="r">Avance</th></tr></thead><tbody>${rows.map(r => `<tr><td>${r.g}</td><td class="r">${U.money(r.pim, '')}</td><td class="r">${U.money(r.e, '')}</td><td class="r">${r.p.toFixed(1)}%</td></tr>`).join('')}</tbody></table>
-          <div class="doc-sign"><div><b>Analista de Presupuesto</b>Elaboró</div><div><b>Jefe de P&P</b>Revisó</div><div><b>Rectorado</b>Toma conocimiento</div></div></div>`,
-          `<button class="btn ghost" data-close>Cerrar</button><button class="btn sec" onclick="SIGA.ui.toast('Informe exportado a PDF con firma digital')"><i class="fa-solid fa-file-pdf"></i> Exportar PDF</button>`, 'wide');
+          <div class="doc-sign"><div><b>Analista de Presupuesto</b>Elaboró</div><div><b>Jefe de P&P</b>Revisó</div><div><b>Rectorado</b>Toma conocimiento</div></div>
+          <div class="doc-qr">${U.qr('EVAL-I-2026', 58)}<span>Documento generado desde el registro transaccional · ${U.now()}</span></div></div>`, { file: 'evaluacion_presupuestaria_I_2026', csv: () => U.csv('evaluacion_presupuestaria_I_2026', ['Genérica', 'PIM', 'Ejecución al 30/06', 'Avance %', 'Meta %'], rows.map(r => [r.g, r.pim.toFixed(2), r.e.toFixed(2), r.p.toFixed(1), r.meta])) });
         SIGA.log('Presupuesto', 'Generación de evaluación presupuestaria', 'I semestre 2026');
       });
     }

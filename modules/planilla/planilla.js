@@ -7,6 +7,29 @@
   const neto = t => tot(t, 'I') - tot(t, 'D');
   const R = () => P.regimenes.map(r => ({ cod: r[0], nom: r[1], n: r[2], ing: r[3], desc: r[4], apo: r[5], neto: r[3] - r[4], clas: r[6] }));
 
+  const dtbl = (head, rows) => `<table class="doc-tbl"><thead><tr>${head.map(h => `<th class="${h[1] ? 'r' : ''}">${h[0]}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${r.map((c, i) => `<td class="${head[i][1] ? 'r' : ''}">${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+  const PL = () => SIGA.modules.planilla;
+  const boletaDoc = t => { const U = SIGA.ui; return U.doc({ tipo: 'Boleta de pago', num: t.cod, fecha: 'Agosto 2026', office: 'Unidad de Recursos Humanos',
+    pairs: [['Cargo', t.cargo], ['Régimen', t.reg], ['Dependencia', t.dep], ['Sistema de pensiones', t.sis + (t.cuspp !== '—' ? ' · CUSPP ' + t.cuspp : '')], ['Fecha de ingreso', t.ing], ['Abono', t.banco]],
+    body: dtbl([['Concepto'], ['Tipo'], ['Importe', 1]], t.c.map(c => [c[0], { I: 'Ingreso', D: 'Descuento', A: 'Aporte empleador' }[c[1]], U.money(c[2], '')])) + dtbl([['Resumen'], ['S/', 1]], [['Total ingresos (TOTGEN)', U.money(tot(t, 'I'), '')], ['Total descuentos', U.money(tot(t, 'D'), '')], ['<b>Neto a pagar (TOTNET)</b>', '<b>' + U.money(neto(t), '') + '</b>'], ['Aportes del empleador', U.money(tot(t, 'A'), '')]]) + `<p class="mini">${U.montoLetras(neto(t))}</p>`,
+    firmas: [['Jefe de Recursos Humanos', 'Firma digital'], ['Trabajador', t.cod], ['Director General de Administración', 'E. Mendoza']] }); };
+  const trabRec = SIGA.recs.trabajador = {
+    mod: 'Planillas', tipo: 'Ficha del trabajador', office: 'Unidad de Recursos Humanos', key: t => t.cod, title: t => t.cod + ' · ' + t.cargo, estado: 'cond', cls: false, anuladoValor: 'Cesado',
+    view: t => PL().legajo(t),
+    fields: t => [['Código', t.cod], ['DNI', t.dni], ['Régimen', t.reg], ['Cargo', t.cargo], ['Dependencia', t.dep], ['Condición', t.cond], ['Ingreso', t.ing], ['Pensiones', t.sis], ['Cuenta', t.banco], ['Correo', t.correo], ['Neto de agosto', SIGA.ui.money(neto(t))]],
+    edit: [{ k: 'cargo', label: 'Cargo' }, { k: 'dep', label: 'Dependencia', span: 1 }, { k: 'sis', label: 'Sistema de pensiones', type: 'select', options: ['ONP', 'AFP Integra', 'AFP Prima', 'AFP Profuturo', 'AFP Habitat', 'D.L. 20530', '—'], span: 1 }, { k: 'banco', label: 'Cuenta de abono', span: 1 }, { k: 'correo', label: 'Correo institucional', span: 1 }],
+    onEdit: (t, v, ch) => t.hist.unshift([SIGA.ctx.hoy, 'Actualización del legajo · ' + ch.map(c => c[0]).join(', ')]),
+    anular: true, anularLabel: 'Registrar cese', canAnular: t => !['Cesado', 'Pensionista'].includes(t.cond),
+    onAnular: (t, m) => { t.hist.unshift([SIGA.ctx.hoy, 'Cese · ' + m]); const r = P.regimenes.find(x => x[0] === t.reg.slice(0, 2)); if (r) { r[2]--; r[3] -= tot(t, 'I'); } },
+    extra: t => [
+      { icon: 'fa-file-invoice', label: 'Boleta de agosto', fn: x => PL().boleta(x) },
+      { icon: 'fa-file-signature', label: 'Constancia de haberes', menuOnly: true, fn: x => PL().constancia(x, 'haberes') },
+      { icon: 'fa-award', label: 'Certificado de trabajo', menuOnly: true, fn: x => PL().constancia(x, 'trabajo') }
+    ],
+    print: t => ({ tipo: 'Ficha del trabajador', num: t.cod, body: dtbl([['Fecha'], ['Movimiento del legajo']], t.hist.map(h => [h[0], h[1]])) }),
+    mailTo: t => t.correo.includes('•') ? 'trabajador@unas.edu.pe' : t.correo
+  };
+
   SIGA.registerModule('planilla', {
     title: 'Planillas y RR.HH.', icon: 'fa-users', group: 'Registro y control',
     alerts() { return P.generada ? [] : [{ lvl: 'info', icon: 'fa-users', t: 'Planilla de agosto por generar', d: '1,197 trabajadores · 9 regímenes' }]; },
@@ -45,11 +68,28 @@
     },
     paintTra() {
       const U = SIGA.ui;
-      document.getElementById('pl-tra').innerHTML = U.table([
+      document.getElementById('pl-tra').innerHTML = U.grid({ id: 'pla-tra', title: 'legajos', export: 'legajo_trabajadores', rows: P.trabajadores, record: trabRec, pageSize: 12,
+        filter: { label: 'Régimen', get: r => r.reg },
+        cols: [
         { k: 'cod', label: 'Código', render: r => `<span class="code">${r.cod}</span>` }, { k: 'cargo', label: 'Cargo', render: r => r.cargo + `<div class="mini">${r.dep}</div>` },
-        { k: 'reg', label: 'Régimen' }, { k: 'sis', label: 'Pensiones' }, { k: 'cond', label: 'Condición', render: r => U.tag(r.cond, r.cond === 'Pensionista' ? 't-blue' : 't-green') },
-        { k: 'ing', label: 'Ingresos', r: true, render: r => U.money(tot(r, 'I'), '') }, { k: 'neto', label: 'Neto', r: true, render: r => `<b>${U.money(neto(r), '')}</b>` }
-      ], P.trabajadores, { onRow: t => this.legajo(t), rowCls: r => r.nuevo ? 'row-new' : '', actions: [{ icon: 'fa-file-invoice', title: 'Boleta electrónica', fn: t => this.boleta(t) }, { icon: 'fa-id-card', title: 'Legajo', fn: t => this.legajo(t) }] });
+        { k: 'reg', label: 'Régimen' }, { k: 'sis', label: 'Pensiones' }, { k: 'cond', label: 'Condición', render: r => U.tag(r.cond, r.cond === 'Pensionista' ? 't-blue' : r.cond === 'Cesado' ? 't-gray' : 't-green') },
+        { k: 'ing', label: 'Ingresos', r: true, sv: r => tot(r, 'I'), render: r => U.money(tot(r, 'I'), '') }, { k: 'neto', label: 'Neto', r: true, sv: neto, render: r => `<b>${U.money(neto(r), '')}</b>` }
+      ], rowCls: r => (r.nuevo ? 'row-new' : '') + (r.cond === 'Cesado' ? ' row-void' : ''),
+        actions: [{ icon: 'fa-file-invoice', title: 'Boleta electrónica', fn: t => this.boleta(t) }, { icon: 'fa-id-card', title: 'Legajo', fn: t => this.legajo(t) }],
+        tools: [{ icon: 'fa-user-plus', label: 'Nuevo trabajador', primary: true, fn: () => this.alta() }],
+        bulk: [
+          { icon: 'fa-envelope', label: 'Enviar boletas por correo', fn: rs => { rs.forEach(t => SIGA.log('Planillas', 'Envío de boleta electrónica', t.cod + ' · agosto 2026', '—', t.correo)); U.toast(rs.length + ' boletas electrónicas enviadas con firma digital'); } },
+          { icon: 'fa-print', label: 'Imprimir boletas', fn: rs => U.preview('Boletas de pago · agosto 2026 · ' + rs.length, rs.map(boletaDoc).join('<div class="pg-break"></div>'), { file: 'boletas_agosto_2026' }) }
+        ],
+        foot: rs => `<tr><td colspan="6" class="r"><b>Totales (${rs.length})</b></td><td class="r num"><b>${U.money(rs.reduce((s, t) => s + tot(t, 'I'), 0), '')}</b></td><td class="r num"><b>${U.money(rs.reduce((s, t) => s + neto(t), 0), '')}</b></td><td></td></tr>` });
+    },
+    constancia(t, tipo) {
+      const U = SIGA.ui, hab = tipo === 'haberes';
+      SIGA.log('Planillas', hab ? 'Emisión de constancia de haberes' : 'Emisión de certificado de trabajo', t.cod);
+      U.preview(hab ? 'Constancia de haberes (R-13)' : 'Certificado de trabajo', U.doc({ tipo: hab ? 'Constancia de haberes' : 'Certificado de trabajo', num: 'N.º 0' + (412 + P.trabajadores.indexOf(t)) + '-2026-URH', office: 'Unidad de Recursos Humanos',
+        body: hab ? `<p style="font-size:12px;line-height:1.7">La Unidad de Recursos Humanos hace constar que el trabajador identificado con código <b>${t.cod}</b>, con cargo de <b>${t.cargo}</b> bajo el régimen <b>${t.reg}</b>, percibe una remuneración bruta mensual de <b>${U.money(tot(t, 'I'))}</b> y un neto de <b>${U.money(neto(t))}</b> en el mes de agosto de 2026, conforme a la planilla de pagos de la institución.</p><p style="font-size:12px">Se expide la presente a solicitud del interesado. Tingo María, ${SIGA.ctx.hoy}.</p>`
+          : `<p style="font-size:12px;line-height:1.7">Se certifica que el trabajador con código <b>${t.cod}</b> labora en la Universidad Nacional Agraria de la Selva desde el <b>${t.ing}</b>, desempeñando el cargo de <b>${t.cargo}</b> en ${t.dep}, bajo el régimen ${t.reg}, habiendo demostrado responsabilidad y eficiencia.</p><p style="font-size:12px">Tingo María, ${SIGA.ctx.hoy}.</p>`,
+        firmas: [['Jefe de la Unidad de Recursos Humanos', 'Firma digital']] }), { file: (hab ? 'constancia_haberes_' : 'certificado_trabajo_') + t.cod.replace(/\W/g, '') });
     },
     boleta(t) {
       const U = SIGA.ui, col = (k, c, title) => `<div style="flex:1;min-width:190px"><div style="font-weight:700;color:${c};font-size:11px;text-transform:uppercase;margin-bottom:6px">${title}</div>${t.c.filter(x => x[1] === k).map(x => `<div class="ef-row"><span>${x[0]}</span><span class="num">${U.money(x[2], '')}</span></div>`).join('') || '<div class="mini">—</div>'}<div class="ef-row tot"><span>Total</span><span class="num">${U.money(tot(t, k), '')}</span></div></div>`;
@@ -60,8 +100,9 @@
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:12px;border-top:2px solid var(--line)"><b style="font-size:13px">NETO A PAGAR</b><b style="font-size:20px;color:var(--primary-dark)">${U.money(neto(t))}</b></div>
         <div class="doc-letras" style="margin-top:8px">${U.montoLetras(neto(t))}</div>
         <div class="mini" style="text-align:center"><i class="fa-solid fa-qrcode"></i> Boleta electrónica con firma digital · TOTGEN = Σ ingresos · TOTNET = TOTGEN − descuentos</div></div>`,
-        `<button class="btn ghost" data-close>Cerrar</button><button class="btn ghost" id="bo-hist"><i class="fa-solid fa-clock-rotate-left"></i> Histórico</button><button class="btn sec" id="bo-mail"><i class="fa-solid fa-envelope"></i> Enviar al correo</button><button class="btn" onclick="SIGA.ui.toast('Boleta descargada en PDF')"><i class="fa-solid fa-download"></i> PDF</button>`, 'wide');
-      b.querySelector('#bo-mail').addEventListener('click', () => { SIGA.log('Planillas', 'Envío de boleta electrónica', t.cod + ' · agosto 2026', '—', t.correo); U.toast('Boleta enviada a ' + t.correo); });
+        `<button class="btn ghost" data-close>Cerrar</button><button class="btn ghost" id="bo-hist"><i class="fa-solid fa-clock-rotate-left"></i> Histórico</button><button class="btn sec" id="bo-mail"><i class="fa-solid fa-envelope"></i> Enviar al correo</button><button class="btn" id="bo-pdf"><i class="fa-solid fa-print"></i> Imprimir / PDF</button>`, 'wide');
+      b.querySelector('#bo-pdf').addEventListener('click', () => U.preview('Boleta de pago · ' + t.cod, boletaDoc(t), { file: 'boleta_' + t.cod.replace(/\W/g, '') + '_2026_08' }));
+      b.querySelector('#bo-mail').addEventListener('click', () => { SIGA.log('Planillas', 'Envío de boleta electrónica', t.cod + ' · agosto 2026', '—', t.correo); U.mail({ to: t.correo.includes('•') ? 'trabajador@unas.edu.pe' : t.correo, asunto: 'Boleta de pago · agosto 2026 · ' + t.cod, adj: 'boleta_' + t.cod.replace(/\W/g, '') + '_2026_08.pdf' }); });
       b.querySelector('#bo-hist').addEventListener('click', () => U.modal('Histórico de boletas · ' + t.cod, U.table([{ k: 0, label: 'Periodo' }, { k: 1, label: 'Neto', r: true, render: r => U.money(r[1]) }, { k: 2, label: 'Estado', render: () => U.tag('Descargable', 't-green') }], ['Agosto', 'Julio', 'Junio', 'Mayo', 'Abril', 'Marzo'].map((m, i) => [m + ' 2026', neto(t) * (i === 0 ? 1 : 0.99)])), `<button class="btn ghost" data-close>Cerrar</button>`, 'narrow'));
     },
     legajo(t) {
@@ -69,22 +110,23 @@
       const b = U.modal('Legajo digital · ' + t.cod, `<div class="ficha mb">${[['Datos personales', [['Código', t.cod], ['DNI', t.dni], ['Correo institucional', t.correo]]], ['Datos laborales', [['Régimen', t.reg], ['Cargo', t.cargo], ['Dependencia', t.dep], ['Condición', t.cond], ['Fecha de ingreso', t.ing]]], ['Previsionales y bancarios', [['Sistema de pensiones', t.sis], ['CUSPP', t.cuspp], ['Salud', 'EsSalud'], ['Cuenta de abono', t.banco]]]].map(g => `<div class="mini-card"><div class="lab" style="margin-bottom:6px">${g[0]}</div>${g[1].map(p => `<div class="ef-row"><span class="mini">${p[0]}</span><b style="font-size:11.5px">${p[1]}</b></div>`).join('')}</div>`).join('')}</div>
         <div class="split eq"><div><div class="lbl-s mb">Historial de cambios (bitácora)</div>${U.timeline(t.hist.map(h => ({ t: h[1], when: h[0], st: 'done' })))}</div>
         <div><div class="lbl-s mb">Documentos del legajo</div>${['Resolución de nombramiento o contrato', 'Grados y títulos (SUNEDU)', 'Declaración jurada de bienes', 'Constancia de afiliación previsional'].map(d => `<div class="doc-attach"><i class="fa-solid fa-file-pdf"></i><span>${d}.pdf</span>${U.tag('verificado', 't-green')}</div>`).join('')}</div></div>`,
-        `<button class="btn ghost" data-close>Cerrar</button><button class="btn ghost" id="lg-cons"><i class="fa-solid fa-file-signature"></i> Constancia de haberes</button><button class="btn" id="lg-bol"><i class="fa-solid fa-file-invoice"></i> Boleta de agosto</button>`, 'wide');
+        `<button class="btn ghost" data-close>Cerrar</button><button class="btn ghost" id="lg-hist"><i class="fa-solid fa-clock-rotate-left"></i> Historial</button><button class="btn ghost" id="lg-edit"><i class="fa-solid fa-pen"></i> Editar</button><button class="btn ghost" id="lg-cons"><i class="fa-solid fa-file-signature"></i> Constancia de haberes</button><button class="btn" id="lg-bol"><i class="fa-solid fa-file-invoice"></i> Boleta de agosto</button>`, 'wide');
       b.querySelector('#lg-bol').addEventListener('click', () => this.boleta(t));
-      b.querySelector('#lg-cons').addEventListener('click', () => {
-        SIGA.log('Planillas', 'Emisión de constancia de haberes', t.cod);
-        U.modal('Constancia de haberes (R-13)', `<div class="doc" style="position:static"><div class="doc-head"><div class="inst"><div class="seal">U</div><div><b>Universidad Nacional Agraria de la Selva</b><span>Unidad de Recursos Humanos</span></div></div><div class="doc-num"><div class="tp">Constancia</div><div class="nn">N° 0${412 + Math.floor(Math.random() * 80)}-2026</div></div></div>
-          <p style="font-size:12px;line-height:1.7">La Unidad de Recursos Humanos hace constar que el trabajador identificado con código <b>${t.cod}</b>, con cargo de <b>${t.cargo}</b> bajo el régimen <b>${t.reg}</b>, percibe una remuneración bruta mensual de <b>${U.money(tot(t, 'I'))}</b> y un neto de <b>${U.money(neto(t))}</b> en el mes de agosto de 2026, conforme a la planilla de pagos de la institución.</p>
-          <p style="font-size:12px;margin-top:10px">Se expide la presente a solicitud del interesado. Tingo María, ${SIGA.ctx.hoy}.</p><div class="doc-sign" style="grid-template-columns:1fr"><div><b>Jefe de la Unidad de Recursos Humanos</b>Firma digital</div></div></div>`, `<button class="btn ghost" data-close>Cerrar</button>`, 'wide');
-      });
+      b.querySelector('#lg-cons').addEventListener('click', () => this.constancia(t, 'haberes'));
+      b.querySelector('#lg-edit').addEventListener('click', () => U.rec(Object.assign({}, trabRec, { view: null })).editar(t));
+      b.querySelector('#lg-hist').addEventListener('click', () => U.rec(trabRec).historial(t));
     },
     paintMen(rs, T) {
       const U = SIGA.ui;
-      document.getElementById('pl-men').innerHTML = U.table([
+      const regRec = { mod: 'Planillas', tipo: 'Resumen de planilla por régimen', key: r => 'Régimen ' + r.cod, title: r => r.cod + ' · ' + r.nom, cls: false,
+        fields: r => [['Régimen', r.cod + ' · ' + r.nom, 1], ['Trabajadores', U.int(r.n)], ['Clasificador', r.clas], ['Ingresos', U.money(r.ing)], ['Descuentos', U.money(r.desc)], ['Aportes', U.money(r.apo)], ['Neto a pagar', `<b>${U.money(r.neto)}</b>`]],
+        body: r => { const ts = P.trabajadores.filter(t => t.reg.slice(0, 2) === r.cod); return ts.length ? `<div class="lbl-s mt mb">Trabajadores de la muestra (${ts.length})</div>` + U.table([{ k: 'cod', label: 'Código' }, { k: 'cargo', label: 'Cargo' }, { k: 'n', label: 'Neto', r: true, render: t => U.money(neto(t)) }], ts, { onRow: t => this.boleta(t) }) : ''; },
+        extra: r => [{ icon: 'fa-file-export', label: 'Archivo de abono del régimen', fn: x => U.download('ABONO_PLANILLA_' + x.cod + '_202608.txt', ['H|20161749126|PLANILLA ' + x.cod + '|' + x.n + '|' + x.neto.toFixed(2)].concat(P.trabajadores.filter(t => t.reg.slice(0, 2) === x.cod).map((t, i) => 'D|' + String(i + 1).padStart(4, '0') + '|' + t.dni + '|' + t.banco + '|' + neto(t).toFixed(2))).join('\n')) }] };
+      document.getElementById('pl-men').innerHTML = U.grid({ id: 'pla-men', title: 'planilla mensual', export: 'planilla_agosto_2026', rows: rs, record: regRec, search: false, cols: [
         { k: 'cod', label: 'Régimen', render: r => `<b>${r.cod}</b> · ${r.nom}` }, { k: 'n', label: 'Trab.', r: true, render: r => U.int(r.n) },
         { k: 'ing', label: 'Ingresos', r: true, render: r => U.money(r.ing, '') }, { k: 'desc', label: 'Descuentos', r: true, render: r => U.money(r.desc, '') },
         { k: 'apo', label: 'Aportes', r: true, render: r => U.money(r.apo, '') }, { k: 'neto', label: 'Neto a pagar', r: true, render: r => `<b>${U.money(r.neto, '')}</b>` }
-      ], rs, { foot: `<tr><td style="font-weight:800">TOTAL</td><td class="r num" style="font-weight:700">${U.int(T.n)}</td><td class="r num" style="font-weight:700">${U.money(T.ing, '')}</td><td class="r num" style="font-weight:700">${U.money(T.desc, '')}</td><td class="r num" style="font-weight:700">${U.money(T.apo, '')}</td><td class="r num" style="font-weight:800;color:var(--primary-dark)">${U.money(T.ing - T.desc, '')}</td></tr>` });
+      ], foot: `<tr><td style="font-weight:800">TOTAL</td><td class="r num" style="font-weight:700">${U.int(T.n)}</td><td class="r num" style="font-weight:700">${U.money(T.ing, '')}</td><td class="r num" style="font-weight:700">${U.money(T.desc, '')}</td><td class="r num" style="font-weight:700">${U.money(T.apo, '')}</td><td class="r num" style="font-weight:800;color:var(--primary-dark)">${U.money(T.ing - T.desc, '')}</td><td></td></tr>` });
     },
     paintApo(rs) {
       const U = SIGA.ui;
@@ -92,8 +134,16 @@
       document.getElementById('pl-p-apo').innerHTML = `<div class="split"><div class="card"><h3><span class="dot"></span>Aportes y retenciones · agosto 2026 <span class="grow">R-05 · R-06 · R-07 · calculados del propio maestro, sin planillas auxiliares</span></h3>
         ${U.table([{ k: 0, label: 'Concepto' }, { k: 1, label: 'Base / tasa', cls: 'mini' }, { k: 2, label: 'Trabajadores', r: true, render: r => U.int(r[2]) }, { k: 3, label: 'Importe', r: true, render: r => U.money(r[3]) }], rows)}</div>
         <div class="card"><h3><span class="dot"></span>Declaraciones generadas automáticamente</h3>
-          ${[['PDT PLAME · SUNAT', 'fa-landmark', 'Remuneraciones, 5.ª categoría y EsSalud'], ['AFPnet', 'fa-piggy-bank', 'Aportes, prima y comisión por AFP'], ['T-Registro', 'fa-id-badge', 'Altas, bajas y modificaciones'], ['AIRHSP · MEF', 'fa-building-columns', 'Registro de plazas y montos']].map(d => `<div class="doc-attach"><i class="fa-solid ${d[1]}" style="color:var(--primary-dark);font-size:15px"></i><span><b>${d[0]}</b><br><span class="mini">${d[2]}</span></span><button class="btn sm ghost" onclick="SIGA.log('Planillas','Generación de archivo','${d[0]}');SIGA.ui.toast('${d[0]} · archivo de agosto generado')">Generar</button></div>`).join('')}
+          ${[['PDT PLAME · SUNAT', 'fa-landmark', 'Remuneraciones, 5.ª categoría y EsSalud'], ['AFPnet', 'fa-piggy-bank', 'Aportes, prima y comisión por AFP'], ['T-Registro', 'fa-id-badge', 'Altas, bajas y modificaciones'], ['AIRHSP · MEF', 'fa-building-columns', 'Registro de plazas y montos']].map(d => `<div class="doc-attach"><i class="fa-solid ${d[1]}" style="color:var(--primary-dark);font-size:15px"></i><span><b>${d[0]}</b><br><span class="mini">${d[2]}</span></span><button class="btn sm ghost" data-dj="${d[0]}">Generar</button></div>`).join('')}
           <p class="mini mt">En el sistema actual esta información no se genera automáticamente (informe 3.3.5).</p></div></div>`;
+      const W = P.trabajadores.filter(t => t.cond !== 'Cesado');
+      const files = {
+        'PDT PLAME · SUNAT': ['0601202608' + '20161749126.rem', W.map(t => ['01', t.dni, t.c.filter(c => c[1] === 'I').map(c => c[2].toFixed(2)).join('|')].join('|')).join('\r\n')],
+        'AFPnet': ['AFPNET_202608.csv', 'CUSPP;DNI;AFP;REM_ASEGURABLE;APORTE;PRIMA\n' + W.filter(t => t.sis.startsWith('AFP')).map(t => [t.cuspp, t.dni, t.sis, tot(t, 'I').toFixed(2), (tot(t, 'I') * 0.1).toFixed(2), (tot(t, 'I') * 0.0137).toFixed(2)].join(';')).join('\n')],
+        'T-Registro': ['TREGISTRO_20161749126_202608.txt', W.filter(t => t.nuevo || t.cond === 'Cesado').map(t => [t.nuevo ? 'ALTA' : 'BAJA', t.dni, t.reg, t.ing].join('|')).join('\n') || 'SIN MOVIMIENTOS EN EL PERIODO'],
+        'AIRHSP · MEF': ['AIRHSP_UNAS_202608.csv', 'CODIGO;REGIMEN;CARGO;DEPENDENCIA;MONTO\n' + W.map(t => [t.cod, t.reg, t.cargo, t.dep, tot(t, 'I').toFixed(2)].join(';')).join('\n')]
+      };
+      document.querySelectorAll('#pl-p-apo [data-dj]').forEach(b => b.addEventListener('click', () => { const f = files[b.dataset.dj]; SIGA.log('Planillas', 'Generación de archivo', b.dataset.dj); U.download(f[0], f[1]); }));
     },
     paintAfe(rs) {
       const U = SIGA.ui, M = P.marcoPersonal, mes = rs.reduce((s, r) => s + r.ing + r.apo, 0);
@@ -104,14 +154,37 @@
     },
     paintAsi() {
       const U = SIGA.ui;
-      document.getElementById('pl-asi').innerHTML = U.table([{ k: 0, label: 'Dependencia' }, { k: 1, label: 'Trabajadores', r: true }, { k: 2, label: 'Tardanzas', r: true }, { k: 3, label: 'Faltas', r: true }, { k: 4, label: 'Descuento aplicado', r: true, render: r => U.money(r[4]) }, { k: 5, label: 'Puntualidad', render: r => { const p = 100 - r[2] / r[1] * 100; return `<div class="mcell">${U.meter(p)}<span>${p.toFixed(0)}%</span></div>`; } }], P.asistencia);
+      const asRec = { mod: 'Planillas', tipo: 'Reporte de asistencia', key: r => 'ASIS ' + r[0], title: r => 'Asistencia · ' + r[0], cls: false,
+        fields: r => [['Dependencia', r[0]], ['Trabajadores', r[1]], ['Tardanzas', r[2]], ['Faltas', r[3]], ['Descuento aplicado', U.money(r[4])], ['Puntualidad', (100 - r[2] / r[1] * 100).toFixed(1) + '%']],
+        edit: [{ k: 't', label: 'Tardanzas', type: 'number', span: 1, get: r => r[2], set: (r, v) => r[2] = v }, { k: 'f', label: 'Faltas', type: 'number', span: 1, get: r => r[3], set: (r, v) => r[3] = v }],
+        onEdit: r => { r[4] = Math.round((r[2] * 3.1 + r[3] * 72.5) * 100) / 100; } };
+      document.getElementById('pl-asi').innerHTML = U.grid({ id: 'pla-asi', title: 'asistencia', export: 'asistencia_agosto_2026', rows: P.asistencia, record: asRec, search: false, pageSize: 15, cols: [{ k: 0, label: 'Dependencia' }, { k: 1, label: 'Trabajadores', r: true }, { k: 2, label: 'Tardanzas', r: true }, { k: 3, label: 'Faltas', r: true }, { k: 4, label: 'Descuento aplicado', r: true, render: r => U.money(r[4]) }, { k: 5, label: 'Puntualidad', sv: r => 1 - r[2] / r[1], render: r => { const p = 100 - r[2] / r[1] * 100; return `<div class="mcell">${U.meter(p)}<span>${p.toFixed(0)}%</span></div>`; } }],
+        foot: rs => `<tr><td class="r"><b>Totales</b></td><td class="r num"><b>${rs.reduce((s, r) => s + r[1], 0)}</b></td><td class="r num"><b>${rs.reduce((s, r) => s + r[2], 0)}</b></td><td class="r num"><b>${rs.reduce((s, r) => s + r[3], 0)}</b></td><td class="r num"><b>${U.money(rs.reduce((s, r) => s + r[4], 0))}</b></td><td colspan="2"></td></tr>` });
     },
     paintVac() {
       const U = SIGA.ui;
       document.getElementById('pl-p-vac').innerHTML = `<div class="split eq"><div class="card"><h3><span class="dot"></span>Rol vacacional <span class="grow">R-10</span></h3><div id="vac-t"></div></div><div class="card"><h3><span class="dot"></span>Licencias</h3><div id="lic-t"></div></div></div>`;
-      document.getElementById('vac-t').innerHTML = U.table([{ k: 0, label: 'Trabajador' }, { k: 1, label: 'Régimen' }, { k: 2, label: 'Periodo', cls: 'mini' }, { k: 3, label: 'Días', r: true }, { k: 4, label: 'Estado', render: r => U.tag(r[4], r[4] === 'En curso' ? 't-blue' : r[4] === 'Gozada' ? 't-green' : 't-gray') }], P.vacaciones);
-      document.getElementById('lic-t').innerHTML = U.table([{ k: 0, label: 'Trabajador' }, { k: 1, label: 'Tipo' }, { k: 2, label: 'Periodo', cls: 'mini' }, { k: 3, label: 'Estado', render: r => U.tag(r[3], r[3] === 'Solicitada' ? 't-amber' : r[3] === 'En curso' ? 't-blue' : 't-green') }], P.licencias,
-        { actions: [{ icon: 'fa-stamp', title: 'Aprobar', show: r => r[3] === 'Solicitada', fn: r => { r[3] = 'Aprobada'; SIGA.log('Planillas', 'Aprobación de licencia', r[0], 'Solicitada', 'Aprobada'); U.toast('Licencia aprobada · el descuento se aplica automáticamente'); SIGA.refresh(); } }] });
+      const vRec = { mod: 'Planillas', tipo: 'Rol vacacional', key: r => r[0].split(' · ')[0] + ' ' + r[2].slice(0, 10), title: r => 'Vacaciones · ' + r[0], estado: 4, cls: false,
+        fields: r => [['Trabajador', r[0]], ['Régimen', r[1]], ['Periodo', r[2]], ['Días', r[3]], ['Estado', r[4]]],
+        edit: [{ k: 'p', label: 'Periodo (dd/mm/aaaa – dd/mm/aaaa)', get: r => r[2], set: (r, v) => r[2] = v }, { k: 'd', label: 'Días', type: 'number', span: 1, get: r => r[3], set: (r, v) => r[3] = v }],
+        canEdit: r => /Programada/.test(r[4]),
+        extra: r => /Programada/.test(r[4]) ? [{ icon: 'fa-plane', label: 'Iniciar goce', fn: x => { x[4] = 'En curso'; SIGA.log('Planillas', 'Inicio de vacaciones', x[0], 'Programada', 'En curso'); U.closeModal(); SIGA.refresh(); } }] : r[4] === 'En curso' ? [{ icon: 'fa-circle-check', label: 'Marcar como gozada', fn: x => { x[4] = 'Gozada'; SIGA.log('Planillas', 'Vacaciones gozadas', x[0], 'En curso', 'Gozada'); U.closeModal(); SIGA.refresh(); } }] : [],
+        anular: true, anularLabel: 'Anular programación', canAnular: r => /Programada/.test(r[4]) };
+      const lRec = { mod: 'Planillas', tipo: 'Resolución de licencia', key: r => r[0].split(' · ')[0] + ' ' + r[1].slice(0, 12), title: r => r[1] + ' · ' + r[0], estado: 3, cls: false, anuladoValor: 'Rechazada',
+        fields: r => [['Trabajador', r[0]], ['Tipo', r[1]], ['Periodo', r[2]], ['Estado', r[3]], ['Efecto en planilla', /sin goce/i.test(r[1]) ? 'Descuento de los días de licencia' : 'Sin descuento (con goce)']],
+        extra: r => r[3] === 'Solicitada' ? [{ icon: 'fa-stamp', label: 'Aprobar licencia', fn: x => this.aprobarLic(x) }] : [],
+        anular: true, anularLabel: 'Rechazar solicitud', canAnular: r => r[3] === 'Solicitada',
+        print: r => ({ tipo: 'Resolución de licencia', num: 'RL-' + (100 + P.licencias.indexOf(r)) + '-2026', body: `<p>Se ${r[3] === 'Rechazada' ? 'deniega' : 'concede'} a <b>${r[0]}</b> la <b>${r[1].toLowerCase()}</b> por el periodo ${r[2]}.</p>` }) };
+      document.getElementById('vac-t').innerHTML = U.grid({ id: 'pla-vac', title: 'rol vacacional', export: 'rol_vacacional', rows: P.vacaciones, record: vRec, filter: { label: 'Estado', get: r => r[4] }, pageSize: 8, cols: [{ k: 0, label: 'Trabajador' }, { k: 1, label: 'Régimen' }, { k: 2, label: 'Periodo', cls: 'mini' }, { k: 3, label: 'Días', r: true }, { k: 4, label: 'Estado', render: r => U.tag(r[4], r[4] === 'En curso' ? 't-blue' : r[4] === 'Gozada' ? 't-green' : r[4] === 'Anulado' ? 't-red' : 't-gray') }],
+        tools: [{ icon: 'fa-plus', label: 'Programar', primary: true, fn: () => U.formModal('<i class="fa-solid fa-umbrella-beach"></i> Programar vacaciones', [{ k: 't', label: 'Trabajador', type: 'select', options: P.trabajadores.filter(t => !['Cesado', 'Pensionista'].includes(t.cond)).map(t => t.cod + ' · ' + t.cargo) }, { k: 'p', label: 'Periodo', value: '01/10/2026 – 15/10/2026', span: 1 }, { k: 'd', label: 'Días', type: 'number', value: 15, span: 1 }], v => { const t = P.trabajadores.find(x => v.t.startsWith(x.cod)); const row = [v.t, t.reg, v.p, +v.d || 15, 'Programada']; P.vacaciones.unshift(row); SIGA.log('Planillas', 'Programación de vacaciones', v.t, '—', v.p); U.closeModal(); SIGA.refresh(); U.toast('Vacaciones programadas · ' + v.t); }, 'Programar') }] });
+      document.getElementById('lic-t').innerHTML = U.grid({ id: 'pla-lic', title: 'licencias', export: 'licencias', rows: P.licencias, record: lRec, filter: { label: 'Estado', get: r => r[3] }, pageSize: 8, cols: [{ k: 0, label: 'Trabajador' }, { k: 1, label: 'Tipo' }, { k: 2, label: 'Periodo', cls: 'mini' }, { k: 3, label: 'Estado', render: r => U.tag(r[3], r[3] === 'Solicitada' ? 't-amber' : r[3] === 'En curso' ? 't-blue' : r[3] === 'Rechazada' ? 't-red' : 't-green') }],
+        actions: [{ icon: 'fa-stamp', title: 'Aprobar', show: r => r[3] === 'Solicitada', fn: r => this.aprobarLic(r) }],
+        tools: [{ icon: 'fa-plus', label: 'Solicitar', primary: true, fn: () => U.formModal('<i class="fa-solid fa-file-medical"></i> Solicitud de licencia', [{ k: 't', label: 'Trabajador', type: 'select', options: P.trabajadores.filter(t => !['Cesado', 'Pensionista'].includes(t.cond)).map(t => t.cod + ' · ' + t.cargo) }, { k: 'k', label: 'Tipo', type: 'select', options: ['Licencia con goce · capacitación oficializada', 'Licencia por salud (CITT)', 'Licencia por paternidad', 'Licencia sin goce · asuntos personales', 'Permiso por onomástico'] }, { k: 'p', label: 'Periodo', value: '25/08/2026 – 27/08/2026' }], v => { P.licencias.unshift([v.t, v.k, v.p, 'Solicitada']); SIGA.log('Planillas', 'Solicitud de licencia', v.t, '—', v.k); U.closeModal(); SIGA.refresh(); U.toast('Solicitud registrada · pasa a aprobación del jefe inmediato'); }, 'Registrar solicitud') }] });
+    },
+    aprobarLic(r) {
+      if (!SIGA.sod(null, 'lic.aprobar')) return;
+      r[3] = 'Aprobada'; SIGA.log('Planillas', 'Aprobación de licencia', r[0], 'Solicitada', 'Aprobada · ' + r[1]);
+      SIGA.ui.closeModal(); SIGA.ui.toast('Licencia aprobada · ' + (/sin goce/i.test(r[1]) ? 'el descuento se aplica automáticamente en la planilla' : 'sin efecto en la remuneración')); SIGA.refresh();
     },
     generar(T) {
       const U = SIGA.ui;

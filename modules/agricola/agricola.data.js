@@ -42,3 +42,22 @@ SIGA.data.agricola = {
   riego: [['17/08', 'C-2026-B02', 'Riego por gravedad · 6 h', '1,800 m³', 118], ['09/08', 'C-2026-B01', 'Riego por gravedad · 8 h', '2,550 m³', 156], ['30/07', 'C-2026-B02', 'Riego por gravedad · 6 h', '1,800 m³', 118]],
   platano: { racimosSem: [118, 124, 121, 130, 127, 133, 129, 136], labels: ['S27', 'S28', 'S29', 'S30', 'S31', 'S32', 'S33', 'S34'] }
 };
+
+/* Ampliación: campañas de café, cacao y vivero; labores, insumos y riegos adicionales */
+(function () {
+  const G = SIGA.data.agricola;
+  G.campanas.push(
+    { id: 'C-2026-P05', parcela: 'P-05', cultivo: 'Café · var. Catimor', siembra: '15/01/2026', cosecha: '30/08/2026', fase: 'Cosecha', avance: 92, rendProg: 1.1, rendReal: null, precio: 9.8, costo: [3100, 240, 1680, 0, 320], estado: 'En campaña' },
+    { id: 'C-2026-P06', parcela: 'P-06', cultivo: 'Cacao · clon CCN-51', siembra: '01/02/2026', cosecha: '15/11/2026', fase: 'Floración', avance: 48, rendProg: 1.4, rendReal: null, precio: 11.5, costo: [2650, 180, 1420, 260, 240], estado: 'En campaña' },
+    { id: 'C-2025-P05', parcela: 'P-05', cultivo: 'Café · var. Catimor', siembra: '15/01/2025', cosecha: '28/08/2025', fase: 'Cosechada', avance: 100, rendProg: 1.1, rendReal: 1.04, precio: 9.2, costo: [2980, 230, 1610, 0, 300], estado: 'Cerrada' },
+    { id: 'C-2025-B01', parcela: 'P-01', cultivo: 'Arroz · var. Bellavista', siembra: '08/05/2025', cosecha: '10/09/2025', fase: 'Cosechada', avance: 100, rendProg: 6.5, rendReal: 6.3, precio: 1.38, costo: [2720, 1360, 2290, 360, 270], estado: 'Cerrada' }
+  );
+  G.labores.push(
+    ['02/08', 'C-2026-P05', 'Cosecha selectiva (1.ª pasada)', 18, 0, 1170], ['30/07', 'C-2026-P06', 'Poda de mantenimiento', 8, 0, 520], ['24/07', 'C-2026-B02', 'Fertilización 2.ª (urea)', 3, 0, 195],
+    ['15/07', 'C-2026-B03', 'Fertilización de fondo', 5, 0, 325], ['08/07', 'C-2026-B02', 'Control de malezas', 5, 0, 325], ['20/05', 'C-2026-B02', 'Trasplante', 30, 0, 1950], ['18/05', 'C-2026-B02', 'Preparación de terreno (fangueo)', 3, 10, 1595]
+  );
+  G.insumos.push(
+    ['30/07', 'C-2026-P06', 'Abono orgánico (compost)', '2 t/ha', '6.4 t', 1920], ['24/07', 'C-2026-B02', 'Urea agrícola', '2 sacos/ha', '12 sacos', 1416], ['15/07', 'C-2026-B03', 'Urea agrícola', '1.5 sacos/ha', '7.8 sacos', 920.4], ['20/05', 'C-2026-B02', 'Semilla certificada var. Bellavista', '40 kg/ha', '240 kg', 960]
+  );
+  G.riego.push(['02/08', 'C-2026-P06', 'Riego por goteo · 4 h', '96 m³', 24], ['22/07', 'C-2026-B01', 'Riego por gravedad · 8 h', '2,550 m³', 156], ['14/07', 'C-2026-B02', 'Riego por gravedad · 6 h', '1,800 m³', 118]);
+})();

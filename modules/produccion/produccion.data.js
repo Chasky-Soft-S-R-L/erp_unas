@@ -50,3 +50,20 @@ SIGA.data.produccion = {
   merma: [['Planta de lácteos', 'Suero y producto fuera de especificación', 2.4, 612], ['Vivero forestal', 'Plantones no viables', 8.1, 190], ['Unidad avícola', 'Huevo roto o sucio', 3.2, 186], ['Planta de café y cacao', 'Grano defectuoso en selección', 1.4, 71]],
   excedente: [['Investigación (prioritario · Ley 30220)', 50], ['Reinversión y equipamiento', 30], ['Retribución a participantes', 20]]
 };
+
+/* Ampliación: órdenes de producción cerradas de julio y agosto, plan de las demás unidades y merma */
+(function () {
+  const P = SIGA.data.produccion;
+  const O = (op, prod, unidad, cant, um, pv, inicio, fin, insumos, mo, dep, cif, merma, estado) => ({ op, prod, unidad, cant, um, pv, avance: 100, inicio, fin, estado: estado || 'Cerrada', insumos, mo, dep, cif, merma });
+  P.ordenes.push(
+    O('OP-0226', 'Café tostado y molido 500 g', 'Planta de café y cacao', 700, 'bolsa', 28, '01/08/2026', '09/08/2026', [['231100080044', 'Café pergamino', 'kg', 455, 9.80], ['—', 'Bolsa laminada con válvula', 'und', 700, 0.85], ['—', 'Etiqueta impresa', 'und', 700, 0.12]], [56, 9.5], 420, 8, 1),
+    O('OP-0225', 'Manjar blanco 500 g', 'Planta de lácteos', 420, 'frasco', 9, '04/08/2026', '08/08/2026', [['—', 'Leche fresca (del establo)', 'litro', 840, 2.44], ['—', 'Azúcar', 'kg', 95, 3.8], ['—', 'Frasco de vidrio 500 g', 'und', 420, 0.95]], [44, 9.5], 130, 6, 2),
+    O('OP-0224', 'Pollo beneficiado · campaña 31', 'Unidad avícola', 1850, 'kg', 11.5, '26/06/2026', '06/08/2026', [['—', 'Pollito BB línea Cobb', 'und', 1100, 2.6], ['—', 'Alimento balanceado de pollos', 'saco', 58, 96], ['—', 'Vacunas avícolas', 'frasco', 4, 68]], [180, 9.5], 360, 5, 3),
+    O('OP-0223', 'Yogur frutado 1 L', 'Planta de lácteos', 1000, 'botella', 8.5, '28/07/2026', '03/08/2026', [['—', 'Leche fresca (del establo)', 'litro', 1040, 2.44], ['—', 'Pulpa de fruta', 'kg', 75, 6.5], ['—', 'Azúcar', 'kg', 80, 3.8], ['231100080015', 'Envase de vidrio 1 L', 'und', 1000, 1.35]], [100, 9.5], 320, 6, 2),
+    O('OP-0222', 'Chocolate 70% · barra 100 g', 'Planta de café y cacao', 500, 'barra', 7.5, '20/07/2026', '31/07/2026', [['—', 'Cacao en grano CCN-51', 'kg', 40, 11.5], ['—', 'Azúcar', 'kg', 17, 3.8], ['—', 'Envoltura y caja', 'und', 500, 0.45]], [34, 9.5], 140, 8, 3),
+    O('OP-0221', 'Plantones de caoba y bolaina', 'Vivero forestal', 3000, 'unidad', 2.5, '02/05/2026', '31/07/2026', [['—', 'Semilla forestal certificada', 'kg', 6, 180], ['—', 'Bolsa de vivero', 'millar', 3, 45], ['—', 'Sustrato preparado', 'm3', 4, 85]], [220, 9.5], 60, 5, 8),
+    O('OP-0220', 'Queso fresco 1 kg', 'Planta de lácteos', 150, 'kg', 18, '27/07/2026', '31/07/2026', [['—', 'Leche fresca (del establo)', 'litro', 1200, 2.44], ['—', 'Cuajo y sal', 'kg', 5, 12]], [30, 9.5], 100, 6, 4)
+  );
+  P.plan.push(['Campos de arroz', 'Arroz en cáscara', 'kg', 42000, 0], ['Vivero forestal', 'Plantones', 'unidades', 4500, 2980], ['Laboratorio de análisis de suelos', 'Análisis', 'muestras', 180, 118], ['Servicios de maquinaria agrícola', 'Horas de tractor', 'horas', 160, 74], ['Unidad avícola', 'Pollo beneficiado', 'kg', 3600, 1850], ['Planta de lácteos', 'Queso fresco', 'kg', 360, 180]);
+  P.merma.push(['Granja porcina', 'Mortalidad de lechones en lactancia', 4.1, 1340], ['Establo lechero', 'Leche descartada por tratamiento antibiótico', 1.8, 264]);
+})();

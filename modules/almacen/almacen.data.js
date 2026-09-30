@@ -49,3 +49,58 @@ SIGA.data.almacen = {
     ['CUS-2026-003', 'Mobiliario del proyecto CONCYTEC', 'CONCYTEC', '31/12/2026']
   ]
 };
+
+/* Ampliación de la muestra: catálogo, despachos con PECOSA de agosto y registros de apoyo */
+(function () {
+  const L = SIGA.data.almacen;
+  L.items.push(
+    { cod: '740805000512', desc: 'Folder manila A4 · paquete x 25', um: 'PAQUETE', ubic: 'Central · A-01-09', stock: 140, min: 30, max: 200, cprom: 12.5 },
+    { cod: '740805000618', desc: 'Cuaderno de registro empastado 200 hojas', um: 'UNIDAD', ubic: 'Central · A-01-11', stock: 55, min: 20, max: 120, cprom: 14.9 },
+    { cod: '231611008512', desc: 'Tóner Brother TN-3479 para impresora láser', um: 'UNIDAD', ubic: 'Central · A-02-03', stock: 9, min: 10, max: 40, cprom: 285, pendiente: 'REQ 2026-0926' },
+    { cod: '740805000799', desc: 'Tinta para impresora Epson T664 · frasco', um: 'FRASCO', ubic: 'Central · A-02-05', stock: 4, min: 12, max: 60, cprom: 33 },
+    { cod: '231100050077', desc: 'Semilla de arroz certificada INIA 509 · saco 40 kg', um: 'SACO', ubic: 'Campo · C-02', stock: 68, min: 40, max: 200, cprom: 165 },
+    { cod: '231100060041', desc: 'Fosfato diamónico · saco 50 kg', um: 'SACO', ubic: 'Campo · C-01', stock: 52, min: 30, max: 150, cprom: 142 },
+    { cod: '231100090088', desc: 'Ivermectina 1 % · frasco 500 ml', um: 'FRASCO', ubic: 'Cámara fría · CF-02', stock: 14, min: 6, max: 30, cprom: 86, venc: '15/03/2027' },
+    { cod: '231100080061', desc: 'Fermento láctico para yogur · sobre 50 U', um: 'SOBRE', ubic: 'Planta lácteos · PL-01', stock: 22, min: 10, max: 60, cprom: 48.5, venc: '20/10/2026' },
+    { cod: '231100080077', desc: 'Azúcar rubia · bolsa 50 kg', um: 'BOLSA', ubic: 'Planta lácteos · PL-03', stock: 18, min: 10, max: 60, cprom: 172 },
+    { cod: '235600100045', desc: 'Mascarilla N95 · caja x 20', um: 'CAJA', ubic: 'Laboratorio · L-01-05', stock: 25, min: 10, max: 50, cprom: 64 },
+    { cod: '180200040023', desc: 'Fierro corrugado 1/2" · varilla 9 m', um: 'VARILLA', ubic: 'Patio · P-01', stock: 160, min: 50, max: 400, cprom: 38.9 },
+    { cod: '231100070131', desc: 'Gasolina 90 octanos', um: 'GALÓN', ubic: 'Tanque · T-02', stock: 95, min: 80, max: 400, cprom: 18.2 }
+  );
+  // Despachos del mes: los que figuran en el kárdex llevan exactamente su documento y cantidad
+  const P = (n, cod, dep, cant, dia, pidio, autorizo, recibio, h) => ({ doc: 'PECOSA 0018' + n, cod, item: (L.items.find(i => i.cod === cod) || {}).desc, dep, cant, fecha: dia, estado: 'Entregado', pidio, autorizo, recibio, hora: dia + ' ' + h });
+  L.movs.push(
+    P(38, '740805000233', 'Facultad de Ingeniería en Informática', 6, '16/08', 'Secretaría · FIIS', 'Decano de Informática', 'C. Pinedo', '11:20'),
+    P(37, '740805000410', 'Oficina de Tesorería', 20, '16/08', 'K. Ramos', 'Tesorero', 'K. Ramos', '10:05'),
+    P(36, '740805000071', 'Facultad de Zootecnia', 115, '16/08', 'Secretaría · Fac. Zootecnia', 'Decano de Zootecnia', 'E. Vásquez', '09:12'),
+    P(35, '235600100021', 'Lab. Sistemas de Producción', 10, '15/08', 'Jefe de Laboratorio', 'Jefe de Abastecimiento', 'G. Tello', '15:40'),
+    P(34, '231100090034', 'Granja Porcina', 4, '15/08', 'P. Huamán', 'Jefe del Centro de Producción', 'Médico veterinario', '08:30'),
+    P(33, '231100060022', 'Campos de arroz · campaña 2026-B', 25, '14/08', 'Responsable de campaña', 'Jefe del Centro de Producción', 'L. Rengifo', '07:45'),
+    P(32, '231100080015', 'Planta de Lácteos', 300, '13/08', 'Jefe de planta', 'Jefe del Centro de Producción', 'N. Flores', '10:30'),
+    P(31, '740805000071', 'Vicerrectorado Académico', 45, '12/08', 'Asistente del Vicerrectorado', 'Vicerrector Académico', 'R. Llanos', '12:10'),
+    P(30, '231100010045', 'Granja Porcina · lote E-121', 24, '12/08', 'P. Huamán', 'Jefe del Centro de Producción', 'Técnico de granja', '07:20'),
+    P(29, '231100080044', 'Planta de Café', 400, '11/08', 'Jefe de planta', 'Jefe del Centro de Producción', 'H. Saavedra', '09:50'),
+    P(28, '231611008471', 'Oficina de Contabilidad', 2, '11/08', 'R. Soto', 'Contador General', 'Asistente contable', '16:05'),
+    P(27, '231100090051', 'Granja Zootecnia', 6, '10/08', 'Médico veterinario', 'Jefe del Centro de Producción', 'Técnico pecuario', '08:15'),
+    P(26, '231100070119', 'Servicios de maquinaria agrícola', 120, '09/08', 'Operador de maquinaria', 'Jefe de Servicios', 'A. Pérez', '07:05'),
+    P(25, '180200040011', 'Unidad Ejecutora de Inversiones', 40, '08/08', 'Residente de obra', 'Jefe de la UEI', 'Ing. D. Chávez', '14:25'),
+    P(20, '740805000071', 'Comedor Universitario', 60, '08/08', 'Administrador del comedor', 'Jefe de Bienestar', 'S. Ramírez', '10:40'),
+    P(24, '740805000233', 'Dirección General de Administración', 4, '07/08', 'Secretaría DGA', 'Director General de Administración', 'M. Tello', '11:35'),
+    P(23, '740805000410', 'Oficina de Abastecimiento', 30, '07/08', 'J. Paredes', 'Jefe de Abastecimiento', 'J. Paredes', '09:00'),
+    P(22, '231100010045', 'Granja Porcina · lote E-118', 30, '06/08', 'P. Huamán', 'Jefe del Centro de Producción', 'Técnico de granja', '07:10'),
+    P(21, '231100010031', 'Granja Porcina', 40, '06/08', 'P. Huamán', 'Jefe del Centro de Producción', 'Técnico de granja', '07:00')
+  );
+  L.movs.splice(3, 0, { doc: 'NEA 000317', cod: '231100060041', item: 'Fosfato diamónico · saco 50 kg', dep: 'Campos de arroz · campaña 2026-B', cant: 30, fecha: '17/08', estado: 'Pendiente de entrega', pidio: 'Responsable de campaña', autorizo: 'Jefe de Abastecimiento', recibio: '— por despachar', hora: '17/08 11:05', nota: 'Recibido del proveedor con NEA · por despachar' });
+  L.transferencias.push(
+    ['TRF-2026-012', '31/07/2026', 'Almacén central', 'Almacén Planta de Café', 'Sacos de yute · 200 und', 'Recibido'],
+    ['TRF-2026-011', '24/07/2026', 'Almacén Granja Zootecnia', 'Almacén central', 'Vacunas por reasignar · 4 frascos', 'Recibido'],
+    ['TRF-2026-010', '10/07/2026', 'Almacén central', 'Almacén Campos agrícolas', 'Urea agrícola · 40 sacos', 'Recibido']
+  );
+  L.transferencias.unshift(['TRF-2026-015', '18/08/2026', 'Almacén central', 'Almacén Campos agrícolas', 'Fosfato diamónico · 10 sacos', 'En tránsito']);
+  L.bajas.push(['BAJ-2026-001', '15/06/2026', 'Material de limpieza deteriorado por humedad', 'Deterioro', 'Res. Directoral N.º 074-2026-DGA', 410]);
+  L.bajas.unshift(['BAJ-2026-004', '18/08/2026', 'Vitamina AD3E · 3 frascos por vencer', 'Vencimiento', 'Informe técnico N.º 022-2026-ALM', 119.7, 'En trámite']);
+  L.custodia.push(
+    ['CUS-2026-002', 'Planta piloto de biogás (convenio)', 'Gobierno Regional de Huánuco', '31/03/2027'],
+    ['CUS-2026-001', 'Motocultor · préstamo municipal', 'Municipalidad Provincial de Leoncio Prado', '15/09/2026']
+  );
+})();
