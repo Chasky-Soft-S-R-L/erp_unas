@@ -119,6 +119,7 @@
     const guard = () => { if (SIGA.ctx.user.readOnly) { U.toast('El rol OCI tiene acceso de solo consulta', 'err'); SIGA.log('Seguridad', 'Intento de modificación (solo consulta)', cfg.mod || ''); return true; } return false; };
     const ops = {
       ver(r) {
+        if (cfg.view) return cfg.view(r);
         const h = bit(r).slice(0, 5);
         const b = U.modal(title(r), `${U.kv(pairs(r))}${cfg.body ? cfg.body(r) : ''}
           <div class="lbl-s mt" style="margin-bottom:8px"><i class="fa-solid fa-clock-rotate-left"></i> Últimos movimientos en la bitácora</div>
@@ -186,6 +187,7 @@
       items(r) {
         const ex = cfg.extra ? cfg.extra(r) : [];
         return [{ icon: 'fa-eye', label: 'Ver detalle', fn: () => ops.ver(r) },
+          ...(cfg.view ? [{ icon: 'fa-list-check', label: 'Ficha del registro', fn: () => { const v = cfg.view; delete cfg.view; try { ops.ver(r); } finally { cfg.view = v; } } }] : []),
           ...(canEdit(r) ? [{ icon: 'fa-pen', label: 'Editar', fn: () => ops.editar(r) }] : []),
           { icon: 'fa-print', label: 'Imprimir / PDF', fn: () => ops.imprimir(r) },
           { icon: 'fa-envelope', label: 'Enviar por correo', fn: () => ops.correo(r) },

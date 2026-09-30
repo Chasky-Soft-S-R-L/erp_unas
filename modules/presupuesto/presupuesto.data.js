@@ -155,3 +155,53 @@ SIGA.data.presupuesto = {
   }
   D.certificaciones.sort((a, b) => b.num.localeCompare(a.num));
 })();
+
+/* Ampliación: habilitaciones entre metas (neutras para el PIM), compromisos anuales, centros de costo y metas POI */
+(function () {
+  const D = SIGA.data.presupuesto;
+  const H = (n, fecha, fte, concepto, m) => ({ n: 'NM-' + n, fecha, tipo: 'Habilitación', tipoCls: 't-amber', concepto, fte, hab: m, anu: m, estado: 'Aprobada' });
+  D.notas.push(
+    H('0032', '01/08/2026', '09', 'Habilitación · Granja Zootecnia → Planta de Lácteos (insumos)', 48000),
+    H('0030', '22/07/2026', '00', 'Habilitación · bienes → servicios de mantenimiento de aulas', 126500),
+    H('0029', '15/07/2026', '18', 'Habilitación entre proyectos de inversión · saldo de obra liquidada', 1840000),
+    H('0028', '08/07/2026', '00', 'Habilitación · Vicerrectorado Académico → Centro Preuniversitario', 64000),
+    H('0026', '24/06/2026', '09', 'Habilitación · Centro Preuniversitario → materiales de enseñanza', 38200),
+    H('0025', '17/06/2026', '00', 'Habilitación · viáticos → pasajes (comisiones de investigación)', 22800),
+    H('0023', '30/05/2026', '13', 'Habilitación · convenio CONCYTEC · reasignación de partidas', 185400),
+    H('0022', '20/05/2026', '18', 'Habilitación · equipamiento de laboratorios de Ciberseguridad', 412000),
+    H('0021', '08/05/2026', '00', 'Habilitación · Comedor Universitario · alimentos → servicios de cocina', 96000),
+    H('0020', '15/04/2026', '09', 'Habilitación · Planta de Café → envases y etiquetas', 17500)
+  );
+  D.notas.sort((a, b) => b.n.localeCompare(a.n));
+  const M = v => Array(12).fill(v);
+  D.compromisos.push(
+    { doc: 'O/S 000302', desc: 'Servicio de limpieza de ambientes académicos', prov: 'Servicios Generales Selva SAC', anual: 402000, meses: M(33500), ejec: 7 },
+    { doc: 'O/S 000304', desc: 'Internet dedicado 500 Mbps', prov: 'Telefónica del Perú SAA', anual: 100800, meses: M(8400), ejec: 7 },
+    { doc: 'O/S 000307', desc: 'Mantenimiento preventivo de maquinaria agrícola', prov: 'Mantenimiento Industrial Selva SAC', anual: 93600, meses: [0, 0, 7800, 7800, 7800, 7800, 7800, 7800, 7800, 7800, 15600, 15600], ejec: 6 },
+    { doc: 'CONT-018', desc: 'Supervisión de obra · pabellón de laboratorios', prov: 'Consultora Ambiental Amazonía EIRL', anual: 518400, meses: [0, 0, 0, 43200, 43200, 43200, 64800, 64800, 64800, 64800, 64800, 64800], ejec: 5 },
+    { doc: 'O/C 000482', desc: 'Alimento balanceado · Granja Porcina (entregas mensuales)', prov: 'Distribuidora Agropecuaria del Huallaga SAC', anual: 149760, meses: M(12480), ejec: 7 }
+  );
+  D.centros.push(
+    ['104.07.13.03.08', 'Planta Piloto de Lácteos', 612400.00, 402880.50, 88],
+    ['104.07.13.03.11', 'Planta de Procesamiento de Café', 488300.00, 301540.20, 72],
+    ['104.08.03', 'Biblioteca Central', 402150.80, 188410.00, 66],
+    ['104.07.13.02.01', 'Centro de Investigación en Suelos', 356980.00, 97520.40, 94],
+    ['104.07.08.05', 'Oficina de Tecnologías de la Información', 318200.00, 241930.75, 52],
+    ['104.07.13.01.04', 'Campos Agrícolas · campaña de arroz', 296540.00, 188300.00, 47],
+    ['104.09.01', 'Oficina de Bienestar Universitario', 244800.00, 162210.30, 61],
+    ['104.07.10', 'Oficina de Imagen Institucional', 128600.00, 70340.00, 23]
+  );
+  D.multianual.push(
+    ['104.09.02.03', 'Centro Preuniversitario', 332297.42, 350000, 365000, 380000],
+    ['104.07.13.03.08', 'Planta Piloto de Lácteos', 612400.00, 690000, 740000, 790000],
+    ['104.07.21.07', 'P.A. Ingeniería en Ciberseguridad', 150570.60, 420000, 380000, 360000],
+    ['104.08.03', 'Biblioteca Central', 402150.80, 415000, 430000, 445000]
+  );
+  D.poi.push(
+    ['AOI00091-05', 'Admisión y nivelación · Centro Preuniversitario', '0091', 'Postulante', 2400, 1860, 78, 64],
+    ['AOI00115-06', 'Producción de leche y derivados · Planta de Lácteos', '0115', 'Litro', 96000, 61200, 64, 66],
+    ['AOI00116-02', 'Procesamiento de café tostado y molido', '0116', 'Kg', 18000, 9800, 54, 62],
+    ['AOI00120-01', 'Investigación en suelos amazónicos', '0120', 'Proyecto', 12, 5, 42, 27],
+    ['AOI00087-04', 'Transformación digital de procesos administrativos', '0087', '% implementación', 100, 35, 35, 38]
+  );
+})();
